@@ -4,13 +4,29 @@ $LabRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $env:VAGRANT_HOME = Join-Path $LabRoot ".vagrant.d"
 $ProgressPath = Join-Path $LabRoot "progress.json"
 
+function ConvertTo-Hashtable($obj) {
+  $hash = @{}
+  if ($null -eq $obj) { return $hash }
+  foreach ($prop in $obj.PSObject.Properties) {
+    $value = $prop.Value
+    if ($null -ne $value -and $value.PSObject.Properties.Name -contains "status") {
+      $hash[$prop.Name] = @{
+        status = $value.status
+        ts = $value.ts
+      }
+    } else {
+      $hash[$prop.Name] = $value
+    }
+  }
+  return $hash
+}
+
 function Read-Progress {
   if (!(Test-Path $ProgressPath)) { return @{} }
   $raw = Get-Content -Raw -LiteralPath $ProgressPath
   if ([string]::IsNullOrWhiteSpace($raw)) { return @{} }
-  $obj = $raw | ConvertFrom-Json -AsHashtable
-  if ($null -eq $obj) { return @{} }
-  return $obj
+  $obj = $raw | ConvertFrom-Json
+  return ConvertTo-Hashtable $obj
 }
 
 function Save-Progress($progress) {

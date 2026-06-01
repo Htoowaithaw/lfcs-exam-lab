@@ -1,0 +1,9 @@
+id: q005
+title: "Configure local hostname resolution"
+domain: "Networking"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Configure local name resolution so repo.lfcs.local resolves to 10.10.10.50 using /etc/hosts.
+hints: ["Edit /etc/hosts.", "Use getent hosts to test."]

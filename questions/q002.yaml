@@ -1,0 +1,10 @@
+id: q002
+title: "Set permissions and create a symlink"
+domain: "Essential Commands"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Configure /srv/lfcs/q002/secret.txt so it is owned by root:adm and has mode 0640.
+  Create a symbolic link at /opt/q002-secret that points to /srv/lfcs/q002/secret.txt.
+hints: ["Use chown and chmod.", "Use ln -s for symbolic links."]

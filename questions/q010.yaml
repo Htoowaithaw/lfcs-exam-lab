@@ -1,0 +1,10 @@
+id: q010
+title: "Configure shared group access"
+domain: "Users and Groups"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create group webops and users alice and bob. Both users must be members of webops.
+  Configure /srv/web so it is owned by root:webops with mode 2775, so new files inherit the webops group.
+hints: ["Mode 2775 sets the setgid bit on a directory.", "Use usermod -aG or useradd -G."]

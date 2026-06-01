@@ -1,0 +1,9 @@
+id: q009
+title: "Create a constrained user account"
+domain: "Users and Groups"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create user examuser with UID 2401, shell /bin/bash, account expiry 2030-12-31, and membership in secondary group lfcsgrp.
+hints: ["Create the group first if needed.", "Use useradd/usermod and chage."]

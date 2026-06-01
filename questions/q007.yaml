@@ -1,0 +1,9 @@
+id: q007
+title: "Create and mount an ext4 filesystem"
+domain: "Storage"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  A blank disk image exists at /var/tmp/lfcs-q007.img. Create an ext4 filesystem on it, mount it at /mnt/lfcs-q007 using loop mounting, and make the mount persistent in /etc/fstab.
+hints: ["Use mkfs.ext4.", "A loop mount can use the disk image path directly in /etc/fstab."]

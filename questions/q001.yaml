@@ -1,0 +1,10 @@
+id: q001
+title: "Archive selected log files"
+domain: "Essential Commands"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create a gzip-compressed tar archive at /root/q001-logs.tar.gz containing every .log file from /var/tmp/lfcs-q001.
+  The archive must store paths relative to /var/tmp/lfcs-q001, not absolute paths.
+hints: ["Use tar -C to control stored paths.", "Only include files ending in .log."]

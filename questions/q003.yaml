@@ -1,0 +1,10 @@
+id: q003
+title: "Fix and enable a systemd service"
+domain: "Operations & Deployment"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  The lfcs-q003 systemd service is present but broken. Fix it so the service starts successfully and is enabled at boot.
+  The service should run /usr/local/bin/lfcs-q003.sh and create /run/lfcs-q003.ready.
+hints: ["Inspect systemctl status lfcs-q003.", "The ExecStart path may be wrong."]

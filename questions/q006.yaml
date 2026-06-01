@@ -1,0 +1,10 @@
+id: q006
+title: "Add a static route"
+domain: "Networking"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Add a route for 203.0.113.0/24 via gateway 10.0.2.2.
+  This task only requires the route to be active in the current boot.
+hints: ["Use ip route add.", "Do not change the default route."]

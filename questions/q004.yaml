@@ -1,0 +1,9 @@
+id: q004
+title: "Schedule a root cron job"
+domain: "Operations & Deployment"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create a root cron job that runs every 5 minutes and appends the text LFCS_Q004 to /var/log/lfcs-q004.log.
+hints: ["Use root's crontab.", "The validator checks the schedule and command text."]

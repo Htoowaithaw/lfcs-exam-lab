@@ -1,0 +1,10 @@
+id: qR04
+title: "Create a DNF repository and install a package"
+domain: "Operations & Deployment"
+difficulty: hard
+distro: rocky
+vms: [lfcs-rocky1]
+question: |
+  A local repository is available at file:///opt/lfcs-r04-repo.
+  Create /etc/yum.repos.d/lfcs-r04.repo for it, disable GPG checking, and install the package lfcs-r04-tool.
+hints: ["Use a .repo file under /etc/yum.repos.d.", "The baseurl must be file:///opt/lfcs-r04-repo."]

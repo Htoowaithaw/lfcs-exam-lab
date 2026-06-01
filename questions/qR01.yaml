@@ -1,0 +1,10 @@
+id: qR01
+title: "Restore an SELinux web context"
+domain: "Operations & Deployment"
+difficulty: medium
+distro: rocky
+vms: [lfcs-rocky1]
+question: |
+  The file /var/www/html/lfcs-r01/index.html has the wrong SELinux type.
+  Restore the correct persistent SELinux context so httpd can serve the file.
+hints: ["Use matchpathcon to compare the expected context.", "restorecon can apply the default context."]

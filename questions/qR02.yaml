@@ -1,0 +1,9 @@
+id: qR02
+title: "Persistently enable an SELinux boolean"
+domain: "Operations & Deployment"
+difficulty: medium
+distro: rocky
+vms: [lfcs-rocky1]
+question: |
+  Enable the SELinux boolean httpd_can_network_connect persistently.
+hints: ["Use setsebool.", "The -P flag makes the change persistent."]

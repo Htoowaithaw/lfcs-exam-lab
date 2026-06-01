@@ -1,0 +1,9 @@
+id: qR03
+title: "Open a permanent firewalld port"
+domain: "Networking"
+difficulty: medium
+distro: rocky
+vms: [lfcs-rocky1]
+question: |
+  Open TCP port 8443 permanently in the public firewalld zone and reload firewalld.
+hints: ["Use firewall-cmd --permanent.", "Reload firewalld after adding a permanent rule."]

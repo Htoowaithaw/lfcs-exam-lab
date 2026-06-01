@@ -81,7 +81,9 @@ rpmbuild --define '_topdir /opt/lfcs-r04-build' -bb /opt/lfcs-r04-build/SPECS/lf
 mkdir -p /opt/lfcs-r04-repo
 cp /opt/lfcs-r04-build/RPMS/noarch/lfcs-r04-tool-1.0-1*.rpm /opt/lfcs-r04-repo/
 createrepo_c /opt/lfcs-r04-repo >/dev/null
+test -s /opt/lfcs-r04-repo/repodata/repomd.xml
 dnf clean all >/dev/null
+sync
 
 dnf -y repolist >/dev/null
 getenforce | grep -q Enforcing

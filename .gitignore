@@ -5,3 +5,6 @@
 *.tmp
 self-test-results.json
 self-test-rocky-results.json
+self-test-phase3-results.json
+offline-qR04-proof.json
+lfcs-*-console.png

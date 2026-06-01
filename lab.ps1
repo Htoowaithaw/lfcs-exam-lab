@@ -3,6 +3,9 @@ $ErrorActionPreference = "Stop"
 $LabRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $env:VAGRANT_HOME = Join-Path $LabRoot ".vagrant.d"
 $ProgressPath = Join-Path $LabRoot "progress.json"
+$SshCachePath = Join-Path $LabRoot ".ssh-cache.json"
+$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
+$UseVagrantRestore = $false
 
 function ConvertTo-Hashtable($obj) {
   $hash = @{}
@@ -94,29 +97,126 @@ function Get-TargetMachine($question) {
   }
 }
 
+function Get-VBoxName($machine) {
+  switch ($machine) {
+    "node1" { return "lfcs-node1" }
+    "lfcs-rocky1" { return "lfcs-rocky1" }
+    default { throw "No VirtualBox VM mapping for $machine" }
+  }
+}
+
+function Read-SshCache {
+  if (!(Test-Path $SshCachePath)) { return @{} }
+  $raw = Get-Content -Raw -LiteralPath $SshCachePath
+  if ([string]::IsNullOrWhiteSpace($raw)) { return @{} }
+  return ConvertTo-Hashtable ($raw | ConvertFrom-Json)
+}
+
+function Save-SshCache($cache) {
+  $cache | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $SshCachePath -Encoding ascii
+}
+
+function Get-SshInfo($machine) {
+  $cache = Read-SshCache
+  if ($cache.ContainsKey($machine)) { return $cache[$machine] }
+
+  Push-Location $LabRoot
+  try {
+    $config = & vagrant ssh-config $machine
+    if ($LASTEXITCODE -ne 0) { throw "vagrant ssh-config failed for $machine" }
+  }
+  finally {
+    Pop-Location
+  }
+
+  $info = @{
+    HostName = ""
+    Port = ""
+    IdentityFile = ""
+    User = "vagrant"
+  }
+  foreach ($line in $config) {
+    if ($line -match '^\s*HostName\s+(.+)\s*$') { $info.HostName = $Matches[1].Trim() }
+    elseif ($line -match '^\s*Port\s+(.+)\s*$') { $info.Port = $Matches[1].Trim() }
+    elseif ($line -match '^\s*IdentityFile\s+(.+)\s*$') { $info.IdentityFile = $Matches[1].Trim('" ') }
+    elseif ($line -match '^\s*User\s+(.+)\s*$') { $info.User = $Matches[1].Trim() }
+  }
+  if (!$info.HostName -or !$info.Port -or !$info.IdentityFile) {
+    throw "Incomplete SSH config for $machine"
+  }
+  $cache[$machine] = $info
+  Save-SshCache $cache
+  return $info
+}
+
+function Invoke-DirectSsh($machine, $command) {
+  $info = Get-SshInfo $machine
+  $knownHosts = if ($IsWindows -or $env:OS -eq "Windows_NT") { "NUL" } else { "/dev/null" }
+  $output = & ssh `
+    "-o" "StrictHostKeyChecking=no" `
+    "-o" "UserKnownHostsFile=$knownHosts" `
+    "-o" "PasswordAuthentication=no" `
+    "-o" "IdentitiesOnly=yes" `
+    "-i" $info.IdentityFile `
+    "-p" $info.Port `
+    "$($info.User)@$($info.HostName)" `
+    $command 2>&1
+  return [pscustomobject]@{
+    Code = $LASTEXITCODE
+    Output = @($output)
+  }
+}
+
+function Wait-DirectSsh($machine) {
+  $deadline = (Get-Date).AddSeconds(90)
+  while ((Get-Date) -lt $deadline) {
+    $result = Invoke-DirectSsh $machine "true"
+    if ($result.Code -eq 0) { return }
+    Start-Sleep -Seconds 2
+  }
+  throw "SSH did not become ready for $machine"
+}
+
+function Restore-BaseSnapshot($machine) {
+  if ($UseVagrantRestore) {
+    $rc = Invoke-Vagrant "snapshot" "restore" $machine "base" "--no-provision"
+    if ($rc -ne 0) { throw "Vagrant snapshot restore failed for $machine" }
+    return
+  }
+
+  $vboxName = Get-VBoxName $machine
+  $info = & $VBoxManage showvminfo $vboxName --machinereadable
+  if ($LASTEXITCODE -ne 0) { throw "VBoxManage showvminfo failed for $vboxName" }
+  $stateLine = $info | Where-Object { $_ -match '^VMState=' } | Select-Object -First 1
+  if ($stateLine -match '"running"') {
+    & $VBoxManage controlvm $vboxName poweroff | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "VBoxManage poweroff failed for $vboxName" }
+  }
+  & $VBoxManage snapshot $vboxName restore base | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "VBoxManage snapshot restore failed for $vboxName" }
+  & $VBoxManage startvm $vboxName --type headless | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "VBoxManage startvm failed for $vboxName" }
+  Wait-DirectSsh $machine
+}
+
 function Load-Question($question) {
   $qid = $question.id
   $target = Get-TargetMachine $question
   Write-Host "Restoring $target base snapshot..."
-  $rc = Invoke-Vagrant "snapshot" "restore" $target "base" "--no-provision"
-  if ($rc -ne 0) { throw "Snapshot restore failed for $qid on $target" }
+  Restore-BaseSnapshot $target
 
   Write-Host "Injecting $qid..."
-  $rc = Invoke-Vagrant "ssh" $target "-c" "sudo bash /vagrant/inject/$qid.sh"
-  if ($rc -ne 0) { throw "Inject failed for $qid on $target" }
+  $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.sh"
+  $result.Output | ForEach-Object { Write-Host $_ }
+  if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
 }
 
 function Validate-Question($question) {
   $qid = $question.id
   $target = Get-TargetMachine $question
-  Push-Location $LabRoot
-  try {
-    $output = & vagrant ssh $target -c "sudo bash /vagrant/validate/$qid.sh" 2>&1
-    $rc = $LASTEXITCODE
-  }
-  finally {
-    Pop-Location
-  }
+  $result = Invoke-DirectSsh $target "sudo bash /vagrant/validate/$qid.sh"
+  $output = $result.Output
+  $rc = $result.Code
 
   $output | ForEach-Object { Write-Host $_ }
   $progress = Read-Progress

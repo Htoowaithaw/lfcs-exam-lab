@@ -1,5 +1,6 @@
 .vagrant/
 .vagrant.d/
+.ssh-cache.json
 *.log
 *.tmp
 self-test-results.json

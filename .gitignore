@@ -1,0 +1,5 @@
+.vagrant/
+.vagrant.d/
+*.log
+*.tmp
+self-test-results.json

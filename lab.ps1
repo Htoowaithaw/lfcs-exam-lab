@@ -84,20 +84,34 @@ function Invoke-Vagrant {
   }
 }
 
-function Load-Question($qid) {
-  Write-Host "Restoring node1 base snapshot..."
-  $rc = Invoke-Vagrant "snapshot" "restore" "node1" "base" "--no-provision"
-  if ($rc -ne 0) { throw "Snapshot restore failed for $qid" }
-
-  Write-Host "Injecting $qid..."
-  $rc = Invoke-Vagrant "ssh" "node1" "-c" "sudo bash /vagrant/inject/$qid.sh"
-  if ($rc -ne 0) { throw "Inject failed for $qid" }
+function Get-TargetMachine($question) {
+  $distro = $question.distro
+  if ([string]::IsNullOrWhiteSpace($distro)) { $distro = "ubuntu" }
+  switch ($distro.ToLowerInvariant()) {
+    "ubuntu" { return "node1" }
+    "rocky" { return "lfcs-rocky1" }
+    default { throw "Unsupported distro '$distro' for $($question.id)" }
+  }
 }
 
-function Validate-Question($qid) {
+function Load-Question($question) {
+  $qid = $question.id
+  $target = Get-TargetMachine $question
+  Write-Host "Restoring $target base snapshot..."
+  $rc = Invoke-Vagrant "snapshot" "restore" $target "base" "--no-provision"
+  if ($rc -ne 0) { throw "Snapshot restore failed for $qid on $target" }
+
+  Write-Host "Injecting $qid..."
+  $rc = Invoke-Vagrant "ssh" $target "-c" "sudo bash /vagrant/inject/$qid.sh"
+  if ($rc -ne 0) { throw "Inject failed for $qid on $target" }
+}
+
+function Validate-Question($question) {
+  $qid = $question.id
+  $target = Get-TargetMachine $question
   Push-Location $LabRoot
   try {
-    $output = & vagrant ssh node1 -c "sudo bash /vagrant/validate/$qid.sh" 2>&1
+    $output = & vagrant ssh $target -c "sudo bash /vagrant/validate/$qid.sh" 2>&1
     $rc = $LASTEXITCODE
   }
   finally {
@@ -139,13 +153,13 @@ while ($true) {
   }
 
   $current = $questions[[int]$choice - 1]
-  Load-Question $current.id
+  Load-Question $current
   $showHints = $false
 
   while ($true) {
     Clear-Host
     Write-Host "$($current.id): $($current.title)"
-    Write-Host "Domain: $($current.domain) | Difficulty: $($current.difficulty)"
+    Write-Host "Domain: $($current.domain) | Difficulty: $($current.difficulty) | Target: $(Get-TargetMachine $current)"
     Write-Host ""
     Write-Host $current.question
     if ($showHints) {
@@ -156,9 +170,9 @@ while ($true) {
     Write-Host ""
     Write-Host "[v] validate  [s] ssh  [r] reload/reset  [h] toggle hints  [q] question menu"
     $action = Read-Host "Action"
-    if ($action -eq "v") { [void](Validate-Question $current.id); Read-Host "Press Enter" }
-    elseif ($action -eq "s") { [void](Invoke-Vagrant "ssh" "node1") }
-    elseif ($action -eq "r") { Load-Question $current.id }
+    if ($action -eq "v") { [void](Validate-Question $current); Read-Host "Press Enter" }
+    elseif ($action -eq "s") { [void](Invoke-Vagrant "ssh" (Get-TargetMachine $current)) }
+    elseif ($action -eq "r") { Load-Question $current }
     elseif ($action -eq "h") { $showHints = !$showHints }
     elseif ($action -eq "q") { break }
   }

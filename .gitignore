@@ -3,3 +3,4 @@
 *.log
 *.tmp
 self-test-results.json
+self-test-rocky-results.json

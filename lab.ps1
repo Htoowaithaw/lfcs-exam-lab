@@ -69,10 +69,14 @@ function Get-Questions {
     ForEach-Object { Read-Question $_.FullName }
 }
 
-function Invoke-Vagrant($arguments) {
+function Invoke-Vagrant {
+  param(
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Arguments
+  )
   Push-Location $LabRoot
   try {
-    & vagrant @arguments
+    & vagrant @Arguments
     return $LASTEXITCODE
   }
   finally {
@@ -82,11 +86,11 @@ function Invoke-Vagrant($arguments) {
 
 function Load-Question($qid) {
   Write-Host "Restoring node1 base snapshot..."
-  $rc = Invoke-Vagrant @("snapshot", "restore", "node1", "base", "--no-provision")
+  $rc = Invoke-Vagrant "snapshot" "restore" "node1" "base" "--no-provision"
   if ($rc -ne 0) { throw "Snapshot restore failed for $qid" }
 
   Write-Host "Injecting $qid..."
-  $rc = Invoke-Vagrant @("ssh", "node1", "-c", "sudo bash /vagrant/inject/$qid.sh")
+  $rc = Invoke-Vagrant "ssh" "node1" "-c" "sudo bash /vagrant/inject/$qid.sh"
   if ($rc -ne 0) { throw "Inject failed for $qid" }
 }
 
@@ -153,7 +157,7 @@ while ($true) {
     Write-Host "[v] validate  [s] ssh  [r] reload/reset  [h] toggle hints  [q] question menu"
     $action = Read-Host "Action"
     if ($action -eq "v") { [void](Validate-Question $current.id); Read-Host "Press Enter" }
-    elseif ($action -eq "s") { [void](Invoke-Vagrant @("ssh", "node1")) }
+    elseif ($action -eq "s") { [void](Invoke-Vagrant "ssh" "node1") }
     elseif ($action -eq "r") { Load-Question $current.id }
     elseif ($action -eq "h") { $showHints = !$showHints }
     elseif ($action -eq "q") { break }

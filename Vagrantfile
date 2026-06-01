@@ -10,4 +10,15 @@ Vagrant.configure("2") do |config|
     end
     node.vm.provision "shell", path: "provision.sh"
   end
+
+  config.vm.define "lfcs-rocky1" do |rocky|
+    rocky.vm.box = "bento/rockylinux-9"
+    rocky.vm.hostname = "lfcs-rocky1"
+    rocky.vm.provider "virtualbox" do |vb|
+      vb.name = "lfcs-rocky1"
+      vb.memory = 4096
+      vb.cpus = 2
+    end
+    rocky.vm.provision "shell", path: "provision-rocky.sh"
+  end
 end

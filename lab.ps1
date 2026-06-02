@@ -218,6 +218,7 @@ function Invoke-InteractiveSsh($machine) {
   }
   & ssh @sshArgs
   if ($LASTEXITCODE -ne 0) { Write-Host "SSH exited with code $LASTEXITCODE" }
+  Write-Host "Task shown above and saved to /root/TASK.md"
 }
 
 function Invoke-DirectSsh($machine, $command) {
@@ -294,6 +295,30 @@ function Restore-BaseSnapshot($machine) {
   Wait-DirectSsh $machine
 }
 
+function Format-TaskText($question) {
+  $body = ($question.question -replace "`r`n", "`n") -replace "`r", ""
+  $lines = @(
+    "# $($question.id): $($question.title)",
+    "",
+    $body
+  )
+  return (($lines -join "`n").TrimEnd() + "`n")
+}
+
+function Show-TaskText($question) {
+  Write-Host ""
+  Write-Host (Format-TaskText $question)
+}
+
+function Install-TaskText($question, $target) {
+  $taskText = Format-TaskText $question
+  $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($taskText))
+  $command = "printf '%s' '$encoded' | base64 -d | sudo tee /root/TASK.md >/dev/null && sudo cp /root/TASK.md /etc/motd && sudo chmod 0644 /root/TASK.md /etc/motd"
+  $result = Invoke-DirectSsh $target $command
+  $result.Output | ForEach-Object { Write-Host $_ }
+  if ($result.Code -ne 0) { throw "Task publish failed for $($question.id) on $target" }
+}
+
 function Load-Question($question) {
   $qid = $question.id
   $target = Get-TargetMachine $question
@@ -303,6 +328,7 @@ function Load-Question($question) {
   $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.sh"
   $result.Output | ForEach-Object { Write-Host $_ }
   if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
+  Install-TaskText $question $target
   Update-Progress $qid "attempted" $false
 }
 
@@ -390,10 +416,11 @@ function Start-PracticeMode {
         $current.hints | ForEach-Object { Write-Host " - $_" }
       }
       Write-Host ""
-      Write-Host "[v] validate  [s] ssh  [r] reload/reset  [h] toggle hints  [q] question menu"
+      Write-Host "[v] validate  [s] ssh  [t] task  [r] reload/reset  [h] toggle hints  [q] question menu"
       $action = Read-Host "Action"
       if ($action -eq "v") { [void](Validate-Question $current); Read-Host "Press Enter" }
       elseif ($action -eq "s") { Invoke-InteractiveSsh (Get-TargetMachine $current) }
+      elseif ($action -eq "t") { Show-TaskText $current; Read-Host "Press Enter" }
       elseif ($action -eq "r") { Load-Question $current }
       elseif ($action -eq "h") { $showHints = !$showHints }
       elseif ($action -eq "q") { break }
@@ -525,13 +552,14 @@ function Start-ExamMode {
       Write-Host ""
       Write-Host "$($current.id): $($current.title) | Remaining $(Get-RemainingText $endTs)"
       Write-Host $current.question
-      Write-Host "[v] validate  [s] ssh  [b] back to exam list"
+      Write-Host "[v] validate  [s] ssh  [t] task  [b] back to exam list"
       $action = Read-Host "Action"
       if ($action -eq "v") {
         $rc = Validate-Question $current
         $session.per_question[$idx].result = if ($rc -eq 0) { "PASS" } else { "FAIL" }
       }
       elseif ($action -eq "s") { Invoke-InteractiveSsh (Get-TargetMachine $current) }
+      elseif ($action -eq "t") { Show-TaskText $current; Read-Host "Press Enter" }
       elseif ($action -eq "b") { break }
     }
   }

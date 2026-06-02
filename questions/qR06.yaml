@@ -1,0 +1,11 @@
+id: qR06
+title: "Use offline dnf repository lfcs-r06-local"
+domain: "Operations & Deployment"
+topic: "dnf/yum repositories"
+difficulty: medium
+distro: rocky
+vms: [lfcs-rocky1]
+question: |
+  Configure the offline repository at /opt/lfcs-r04-repo in /etc/yum.repos.d/lfcs-r06-local.repo.
+  Install lfcs-r04-tool from that local repository without using a network mirror.
+hints: ["Use baseurl=file:///opt/lfcs-r04-repo.", "Disable gpgcheck for the local lab package."]

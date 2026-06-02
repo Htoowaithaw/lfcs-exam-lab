@@ -1,0 +1,11 @@
+id: q090
+title: "Build and run local Docker image lfcs-op-docker1"
+domain: "Operations & Deployment"
+topic: "docker"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Using only the preloaded image lfcs-local-base:1.0, build image lfcs/lfcs-op-docker1:1.0 from /root/lfcs-op-docker1/Dockerfile.
+  Run a detached container named lfcs-op-docker1-ctr with label lfcs.question=q090.
+hints: ["Do not pull from a remote registry.", "Use docker inspect to verify labels."]

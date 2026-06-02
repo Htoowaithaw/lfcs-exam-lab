@@ -1,0 +1,11 @@
+id: q085
+title: "Set sysctl net.ipv4.conf.all.rp_filter"
+domain: "Operations & Deployment"
+topic: "sysctl"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Set net.ipv4.conf.all.rp_filter to 0 immediately and persistently using /etc/sysctl.d/lfcs-op-sysctl2.conf.
+  The runtime value and the persistent file must both match.
+hints: ["Use sysctl -w for runtime.", "Use sysctl --system or sysctl -p for persistence."]

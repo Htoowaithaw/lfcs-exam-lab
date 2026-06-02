@@ -1,0 +1,11 @@
+id: qR08
+title: "Persist SELinux boolean nis_enabled"
+domain: "Operations & Deployment"
+topic: "SELinux enable/manage"
+difficulty: medium
+distro: rocky
+vms: [lfcs-rocky1]
+question: |
+  Ensure SELinux is enforcing and persistently enable the boolean nis_enabled.
+  The change must survive a policy reload.
+hints: ["Use setsebool -P.", "getenforce must report Enforcing."]

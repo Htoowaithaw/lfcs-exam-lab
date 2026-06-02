@@ -1,0 +1,11 @@
+id: q066
+title: "Control process state for lfcs-op-proc8"
+domain: "Operations & Deployment"
+topic: "process management"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  A long-running process for lfcs-op-proc8 was started during setup.
+  Find the PID recorded in /run/lfcs-op-proc8.pid, renice it to 8, and write the PID to /root/lfcs-op-proc8.answer. The process must remain running.
+hints: ["Use ps, renice, and kill -0.", "The PID file identifies the exact process."]

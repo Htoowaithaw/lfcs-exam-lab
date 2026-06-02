@@ -9,3 +9,8 @@ self-test-phase3-results.json
 offline-qR04-proof.json
 lfcs-*-console.png
 phase5-essential-gate-results.json
+phase5b-*.json
+phase5-ubuntu-regate-results.json
+phase5-operations-gate-results*.json
+phase5-operations-failed-rerun.json
+phase5-rocky-boolean-rerun.json

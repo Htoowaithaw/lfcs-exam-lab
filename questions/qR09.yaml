@@ -1,0 +1,11 @@
+id: qR09
+title: "Persist SELinux boolean virt_use_nfs"
+domain: "Operations & Deployment"
+topic: "SELinux enable/manage"
+difficulty: medium
+distro: rocky
+vms: [lfcs-rocky1]
+question: |
+  Ensure SELinux is enforcing and persistently enable the boolean virt_use_nfs.
+  The change must survive a policy reload.
+hints: ["Use setsebool -P.", "getenforce must report Enforcing."]

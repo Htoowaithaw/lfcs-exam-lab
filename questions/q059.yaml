@@ -1,0 +1,11 @@
+id: q059
+title: "Repair lfcs-op-svc1 systemd service"
+domain: "Operations & Deployment"
+topic: "systemd service files"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  A service named lfcs-op-svc1 is installed but does not meet the requested state.
+  Fix /etc/systemd/system/lfcs-op-svc1.service so it runs /usr/local/bin/lfcs-op-svc1.sh, creates /run/lfcs-op-svc1.ready, is active now, and is enabled at boot.
+hints: ["Run daemon-reload after editing unit files.", "Validate active and enabled state with systemctl."]

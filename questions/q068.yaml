@@ -1,0 +1,11 @@
+id: q068
+title: "Route syslog messages for lfcs-op-log2"
+domain: "Operations & Deployment"
+topic: "logging rsyslog+journald"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Configure rsyslog so messages tagged lfcs-op-log2-tag are written to /var/log/lfcs-op-log2.log.
+  Reload rsyslog and record one test message containing LFCS-2 in that file.
+hints: ["A tag match rule can route logger messages.", "Use systemctl reload-or-restart rsyslog."]

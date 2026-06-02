@@ -1,8 +1,24 @@
+param(
+  [ValidateSet("Menu", "Practice", "Exam")]
+  [string]$Mode = "Menu",
+  [int]$ExamDurationMinutes = 120,
+  [int]$ExamQuestionCount = 20,
+  [int]$PassThresholdPct = 66,
+  [int]$Seed = 0,
+  [switch]$UseSeed,
+  [int]$AutoApplySolutions = -1,
+  [switch]$AutoRunExam,
+  [string]$AutoPracticeQuestionId = "",
+  [switch]$AutoPracticeSolve
+)
+
 $ErrorActionPreference = "Stop"
 
 $LabRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $env:VAGRANT_HOME = Join-Path $LabRoot ".vagrant.d"
 $ProgressPath = Join-Path $LabRoot "progress.json"
+$DataDir = Join-Path $LabRoot "data"
+$ExamSessionsPath = Join-Path $DataDir "exam-sessions.json"
 $SshCachePath = Join-Path $LabRoot ".ssh-cache.json"
 $VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 $UseVagrantRestore = $false
@@ -15,7 +31,8 @@ function ConvertTo-Hashtable($obj) {
     if ($null -ne $value -and $value.PSObject.Properties.Name -contains "status") {
       $hash[$prop.Name] = @{
         status = $value.status
-        ts = $value.ts
+        attempts = $(if ($value.PSObject.Properties.Name -contains "attempts") { [int]$value.attempts } else { 0 })
+        last_ts = $(if ($value.PSObject.Properties.Name -contains "last_ts") { $value.last_ts } elseif ($value.PSObject.Properties.Name -contains "ts") { $value.ts } else { $null })
       }
     } else {
       $hash[$prop.Name] = $value
@@ -28,12 +45,29 @@ function Read-Progress {
   if (!(Test-Path $ProgressPath)) { return @{} }
   $raw = Get-Content -Raw -LiteralPath $ProgressPath
   if ([string]::IsNullOrWhiteSpace($raw)) { return @{} }
-  $obj = $raw | ConvertFrom-Json
-  return ConvertTo-Hashtable $obj
+  return ConvertTo-Hashtable ($raw | ConvertFrom-Json)
 }
 
 function Save-Progress($progress) {
-  $progress | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $ProgressPath -Encoding ascii
+  $progress | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $ProgressPath -Encoding ascii
+}
+
+function Update-Progress($qid, $status, [bool]$CountAttempt) {
+  $progress = Read-Progress
+  $existing = if ($progress.ContainsKey($qid)) { $progress[$qid] } else { @{} }
+  $attempts = if ($existing.ContainsKey("attempts")) { [int]$existing.attempts } else { 0 }
+  if ($CountAttempt) { $attempts++ }
+  $progress[$qid] = @{
+    status = $status
+    attempts = $attempts
+    last_ts = (Get-Date).ToString("o")
+  }
+  Save-Progress $progress
+}
+
+function Ensure-DataFiles {
+  if (!(Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir | Out-Null }
+  if (!(Test-Path $ExamSessionsPath)) { "[]" | Set-Content -LiteralPath $ExamSessionsPath -Encoding ascii }
 }
 
 function Read-Question($path) {
@@ -73,10 +107,7 @@ function Get-Questions {
 }
 
 function Invoke-Vagrant {
-  param(
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$Arguments
-  )
+  param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
   Push-Location $LabRoot
   try {
     & vagrant @Arguments
@@ -129,21 +160,14 @@ function Get-SshInfo($machine) {
     Pop-Location
   }
 
-  $info = @{
-    HostName = ""
-    Port = ""
-    IdentityFile = ""
-    User = "vagrant"
-  }
+  $info = @{ HostName = ""; Port = ""; IdentityFile = ""; User = "vagrant" }
   foreach ($line in $config) {
     if ($line -match '^\s*HostName\s+(.+)\s*$') { $info.HostName = $Matches[1].Trim() }
     elseif ($line -match '^\s*Port\s+(.+)\s*$') { $info.Port = $Matches[1].Trim() }
     elseif ($line -match '^\s*IdentityFile\s+(.+)\s*$') { $info.IdentityFile = $Matches[1].Trim('" ') }
     elseif ($line -match '^\s*User\s+(.+)\s*$') { $info.User = $Matches[1].Trim() }
   }
-  if (!$info.HostName -or !$info.Port -or !$info.IdentityFile) {
-    throw "Incomplete SSH config for $machine"
-  }
+  if (!$info.HostName -or !$info.Port -or !$info.IdentityFile) { throw "Incomplete SSH config for $machine" }
   $cache[$machine] = $info
   Save-SshCache $cache
   return $info
@@ -161,14 +185,11 @@ function Invoke-DirectSsh($machine, $command) {
     "-p" $info.Port `
     "$($info.User)@$($info.HostName)" `
     $command 2>&1
-  return [pscustomobject]@{
-    Code = $LASTEXITCODE
-    Output = @($output)
-  }
+  return [pscustomobject]@{ Code = $LASTEXITCODE; Output = @($output) }
 }
 
 function Wait-DirectSsh($machine) {
-  $deadline = (Get-Date).AddSeconds(90)
+  $deadline = (Get-Date).AddSeconds(120)
   while ((Get-Date) -lt $deadline) {
     $result = Invoke-DirectSsh $machine "true"
     if ($result.Code -eq 0) { return }
@@ -204,28 +225,34 @@ function Load-Question($question) {
   $target = Get-TargetMachine $question
   Write-Host "Restoring $target base snapshot..."
   Restore-BaseSnapshot $target
-
   Write-Host "Injecting $qid..."
   $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.sh"
   $result.Output | ForEach-Object { Write-Host $_ }
   if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
+  Update-Progress $qid "attempted" $false
 }
 
 function Validate-Question($question) {
   $qid = $question.id
   $target = Get-TargetMachine $question
   $result = Invoke-DirectSsh $target "sudo bash /vagrant/validate/$qid.sh"
-  $output = $result.Output
-  $rc = $result.Code
+  $result.Output | ForEach-Object { Write-Host $_ }
+  $status = if ($result.Code -eq 0) { "pass" } else { "fail" }
+  Update-Progress $qid $status $true
+  return $result.Code
+}
 
-  $output | ForEach-Object { Write-Host $_ }
-  $progress = Read-Progress
-  $progress[$qid] = @{
-    status = $(if ($rc -eq 0) { "pass" } else { "fail" })
-    ts = (Get-Date).ToString("o")
-  }
-  Save-Progress $progress
-  return $rc
+function Invoke-Solution($question) {
+  $qid = $question.id
+  $target = Get-TargetMachine $question
+  $result = Invoke-DirectSsh $target "sudo bash /vagrant/solutions/$qid.sh"
+  $result.Output | ForEach-Object { Write-Host $_ }
+  if ($result.Code -ne 0) { throw "Solution failed for $qid on $target" }
+}
+
+function Get-RemainingText($endTs) {
+  $remaining = [int][Math]::Max(0, [Math]::Ceiling(($endTs - (Get-Date)).TotalSeconds))
+  return "{0:00}:{1:00}" -f [Math]::Floor($remaining / 60), ($remaining % 60)
 }
 
 function Show-QuestionMenu {
@@ -237,43 +264,207 @@ function Show-QuestionMenu {
   for ($i = 0; $i -lt $questions.Count; $i++) {
     $q = $questions[$i]
     $status = if ($progress.ContainsKey($q.id)) { $progress[$q.id].status } else { "new" }
-    "{0,2}. {1} [{2}] - {3} ({4})" -f ($i + 1), $q.id, $status, $q.title, $q.domain
+    $attempts = if ($progress.ContainsKey($q.id)) { $progress[$q.id].attempts } else { 0 }
+    "{0,2}. {1} [{2}, attempts={3}] - {4} ({5})" -f ($i + 1), $q.id, $status, $attempts, $q.title, $q.domain
   }
   Write-Host " q. quit"
   return $questions
 }
 
-while ($true) {
-  $questions = Show-QuestionMenu
-  $choice = Read-Host "Select a question"
-  if ($choice -eq "q") { break }
-  if (!($choice -as [int]) -or [int]$choice -lt 1 -or [int]$choice -gt $questions.Count) {
-    Write-Host "Invalid choice"
-    continue
+function Start-PracticeMode {
+  if (![string]::IsNullOrWhiteSpace($AutoPracticeQuestionId)) {
+    $question = @(Get-Questions | Where-Object { $_.id -eq $AutoPracticeQuestionId })[0]
+    if ($null -eq $question) { throw "Practice question '$AutoPracticeQuestionId' not found" }
+    Load-Question $question
+    [void](Validate-Question $question)
+    if ($AutoPracticeSolve) {
+      Invoke-Solution $question
+      [void](Validate-Question $question)
+    }
+    return
   }
-
-  $current = $questions[[int]$choice - 1]
-  Load-Question $current
-  $showHints = $false
 
   while ($true) {
-    Clear-Host
-    Write-Host "$($current.id): $($current.title)"
-    Write-Host "Domain: $($current.domain) | Difficulty: $($current.difficulty) | Target: $(Get-TargetMachine $current)"
-    Write-Host ""
-    Write-Host $current.question
-    if ($showHints) {
-      Write-Host ""
-      Write-Host "Hints:"
-      $current.hints | ForEach-Object { Write-Host " - $_" }
+    $questions = Show-QuestionMenu
+    $choice = Read-Host "Select a question"
+    if ($choice -eq "q") { break }
+    if (!($choice -as [int]) -or [int]$choice -lt 1 -or [int]$choice -gt $questions.Count) {
+      Write-Host "Invalid choice"
+      continue
     }
-    Write-Host ""
-    Write-Host "[v] validate  [s] ssh  [r] reload/reset  [h] toggle hints  [q] question menu"
-    $action = Read-Host "Action"
-    if ($action -eq "v") { [void](Validate-Question $current); Read-Host "Press Enter" }
-    elseif ($action -eq "s") { [void](Invoke-Vagrant "ssh" (Get-TargetMachine $current)) }
-    elseif ($action -eq "r") { Load-Question $current }
-    elseif ($action -eq "h") { $showHints = !$showHints }
-    elseif ($action -eq "q") { break }
+
+    $current = $questions[[int]$choice - 1]
+    Load-Question $current
+    $showHints = $false
+
+    while ($true) {
+      Clear-Host
+      Write-Host "$($current.id): $($current.title)"
+      Write-Host "Domain: $($current.domain) | Difficulty: $($current.difficulty) | Target: $(Get-TargetMachine $current)"
+      Write-Host ""
+      Write-Host $current.question
+      if ($showHints) {
+        Write-Host ""
+        Write-Host "Hints:"
+        $current.hints | ForEach-Object { Write-Host " - $_" }
+      }
+      Write-Host ""
+      Write-Host "[v] validate  [s] ssh  [r] reload/reset  [h] toggle hints  [q] question menu"
+      $action = Read-Host "Action"
+      if ($action -eq "v") { [void](Validate-Question $current); Read-Host "Press Enter" }
+      elseif ($action -eq "s") { [void](Invoke-Vagrant "ssh" (Get-TargetMachine $current)) }
+      elseif ($action -eq "r") { Load-Question $current }
+      elseif ($action -eq "h") { $showHints = !$showHints }
+      elseif ($action -eq "q") { break }
+    }
   }
+}
+
+function Select-ExamQuestions($questions) {
+  $count = [Math]::Min($ExamQuestionCount, $questions.Count)
+  $random = if ($UseSeed) { [Random]::new($Seed) } else { [Random]::new() }
+  return @($questions | Sort-Object { $random.Next() } | Select-Object -First $count)
+}
+
+function Write-ScoreReport($session) {
+  Write-Host ""
+  Write-Host "Exam Score Report"
+  Write-Host "================="
+  Write-Host ("Score: {0}/{1} ({2}%)" -f $session.score, $session.total, $session.percentage)
+  Write-Host ("Result: {0} vs approximate configurable threshold {1}% (not an official LFCS figure)" -f $(if ($session.pass_bool) { "PASS" } else { "FAIL" }), $session.threshold_used)
+  Write-Host ("Time used: {0}s" -f $session.duration_used_sec)
+  Write-Host ("End reason: {0}" -f $session.end_reason)
+  Write-Host ""
+  $session.per_question | Format-Table qid,domain,distro,result -AutoSize
+}
+
+function Save-ExamSession($session) {
+  Ensure-DataFiles
+  $existingRaw = Get-Content -Raw -LiteralPath $ExamSessionsPath
+  $existing = @()
+  if (![string]::IsNullOrWhiteSpace($existingRaw)) { $existing = @($existingRaw | ConvertFrom-Json) }
+  $all = @($existing) + @($session)
+  $all | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $ExamSessionsPath -Encoding ascii
+}
+
+function Complete-ExamSession($session, $endReason, $started, $endTs) {
+  $ended = Get-Date
+  $passed = @($session.per_question | Where-Object { $_.result -eq "PASS" }).Count
+  $total = $session.per_question.Count
+  $percentage = if ($total -gt 0) { [Math]::Round(($passed / $total) * 100, 2) } else { 0 }
+  $session.ended_ts = $ended.ToString("o")
+  $session.duration_used_sec = [int][Math]::Round(($ended - $started).TotalSeconds)
+  $session.score = $passed
+  $session.total = $total
+  $session.percentage = $percentage
+  $session.pass_bool = ($percentage -ge $PassThresholdPct)
+  $session.threshold_used = $PassThresholdPct
+  $session.end_reason = $endReason
+  Save-ExamSession $session
+  Write-ScoreReport $session
+  return $session
+}
+
+function Start-ExamMode {
+  Ensure-DataFiles
+  $questions = @(Select-ExamQuestions @(Get-Questions))
+  $started = Get-Date
+  $endTs = $started.AddMinutes($ExamDurationMinutes)
+  $session = [ordered]@{
+    session_id = [guid]::NewGuid().ToString()
+    started_ts = $started.ToString("o")
+    ended_ts = $null
+    duration_used_sec = 0
+    question_ids = @($questions | ForEach-Object { $_.id })
+    per_question = @($questions | ForEach-Object {
+      [pscustomobject]@{ qid = $_.id; domain = $_.domain; distro = $(if ($_.distro) { $_.distro } else { "ubuntu" }); result = "UNVALIDATED" }
+    })
+    score = 0
+    total = $questions.Count
+    percentage = 0
+    pass_bool = $false
+    threshold_used = $PassThresholdPct
+    end_reason = $null
+  }
+
+  Write-Host "Exam Mode"
+  Write-Host "========="
+  Write-Host ("Duration: {0} minutes | Questions: {1} | Threshold: approximate configurable {2}% (not official)" -f $ExamDurationMinutes, $questions.Count, $PassThresholdPct)
+  Write-Host "Warning: re-opening a question reloads it fresh; work is not preserved across switches. Finish before moving on."
+
+  if ($ExamDurationMinutes -le 0) {
+    return Complete-ExamSession $session "timeout" $started $endTs
+  }
+
+  if ($AutoRunExam) {
+    for ($i = 0; $i -lt $questions.Count; $i++) {
+      if ((Get-Date) -ge $endTs) { return Complete-ExamSession $session "timeout" $started $endTs }
+      $q = $questions[$i]
+      Load-Question $q
+      if ($AutoApplySolutions -gt $i) { Invoke-Solution $q }
+      $rc = Validate-Question $q
+      $session.per_question[$i].result = if ($rc -eq 0) { "PASS" } else { "FAIL" }
+    }
+    return Complete-ExamSession $session "completed" $started $endTs
+  }
+
+  while ($true) {
+    if ((Get-Date) -ge $endTs) { return Complete-ExamSession $session "timeout" $started $endTs }
+    $remaining = Get-RemainingText $endTs
+    Write-Host ""
+    Write-Host "Exam Questions - time remaining $remaining"
+    for ($i = 0; $i -lt $questions.Count; $i++) {
+      $q = $questions[$i]
+      "{0,2}. {1} [{2}] - {3} ({4}, {5})" -f ($i + 1), $q.id, $session.per_question[$i].result, $q.title, $q.domain, $(if ($q.distro) { $q.distro } else { "ubuntu" })
+    }
+    Write-Host " e. end exam"
+    if (@($session.per_question | Where-Object { $_.result -eq "UNVALIDATED" }).Count -eq 0) {
+      return Complete-ExamSession $session "completed" $started $endTs
+    }
+
+    $choice = Read-Host "Open question"
+    if ($choice -eq "e") { return Complete-ExamSession $session "completed" $started $endTs }
+    if (!($choice -as [int]) -or [int]$choice -lt 1 -or [int]$choice -gt $questions.Count) {
+      Write-Host "Invalid choice"
+      continue
+    }
+
+    $idx = [int]$choice - 1
+    $current = $questions[$idx]
+    Write-Host "Reload warning: opening $($current.id) restores a fresh state for that VM."
+    Load-Question $current
+    while ($true) {
+      if ((Get-Date) -ge $endTs) { return Complete-ExamSession $session "timeout" $started $endTs }
+      Write-Host ""
+      Write-Host "$($current.id): $($current.title) | Remaining $(Get-RemainingText $endTs)"
+      Write-Host $current.question
+      Write-Host "[v] validate  [s] ssh  [b] back to exam list"
+      $action = Read-Host "Action"
+      if ($action -eq "v") {
+        $rc = Validate-Question $current
+        $session.per_question[$idx].result = if ($rc -eq 0) { "PASS" } else { "FAIL" }
+      }
+      elseif ($action -eq "s") { [void](Invoke-Vagrant "ssh" (Get-TargetMachine $current)) }
+      elseif ($action -eq "b") { break }
+    }
+  }
+}
+
+Ensure-DataFiles
+
+if ($Mode -eq "Practice") {
+  Start-PracticeMode
+}
+elseif ($Mode -eq "Exam") {
+  [void](Start-ExamMode)
+}
+else {
+  Write-Host "LFCS Lab"
+  Write-Host "========"
+  Write-Host "[1] Practice Mode - free navigation, no timer"
+  Write-Host "[2] Exam Mode     - timed, random question set, scored"
+  $choice = Read-Host "Select mode"
+  if ($choice -eq "1") { Start-PracticeMode }
+  elseif ($choice -eq "2") { [void](Start-ExamMode) }
+  else { Write-Host "Invalid mode" }
 }

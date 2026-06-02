@@ -93,7 +93,7 @@ function Read-Question($path) {
     elseif ($line -match '^hints:\s*\[(.*)\]\s*$') {
       $items = $Matches[1]
       if (![string]::IsNullOrWhiteSpace($items)) {
-        $q.hints = $items -split '",\s*"' | ForEach-Object { $_.Trim(' "[', ']') }
+        $q.hints = $items -split '",\s*"' | ForEach-Object { $_.Trim().Trim('"').Trim('[').Trim(']') }
       }
     }
   }
@@ -176,16 +176,24 @@ function Get-SshInfo($machine) {
 function Invoke-DirectSsh($machine, $command) {
   $info = Get-SshInfo $machine
   $knownHosts = if ($IsWindows -or $env:OS -eq "Windows_NT") { "NUL" } else { "/dev/null" }
-  $output = & ssh `
-    "-o" "StrictHostKeyChecking=no" `
-    "-o" "UserKnownHostsFile=$knownHosts" `
-    "-o" "PasswordAuthentication=no" `
-    "-o" "IdentitiesOnly=yes" `
-    "-i" $info.IdentityFile `
-    "-p" $info.Port `
-    "$($info.User)@$($info.HostName)" `
-    $command 2>&1
-  return [pscustomobject]@{ Code = $LASTEXITCODE; Output = @($output) }
+  $oldErrorAction = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    $output = & ssh `
+      "-o" "StrictHostKeyChecking=no" `
+      "-o" "UserKnownHostsFile=$knownHosts" `
+      "-o" "LogLevel=ERROR" `
+      "-o" "PasswordAuthentication=no" `
+      "-o" "IdentitiesOnly=yes" `
+      "-i" $info.IdentityFile `
+      "-p" $info.Port `
+      "$($info.User)@$($info.HostName)" `
+      $command 2>&1
+    return [pscustomobject]@{ Code = $LASTEXITCODE; Output = @($output) }
+  }
+  finally {
+    $ErrorActionPreference = $oldErrorAction
+  }
 }
 
 function Wait-DirectSsh($machine) {
@@ -335,15 +343,21 @@ function Write-ScoreReport($session) {
   Write-Host ("Time used: {0}s" -f $session.duration_used_sec)
   Write-Host ("End reason: {0}" -f $session.end_reason)
   Write-Host ""
-  $session.per_question | Format-Table qid,domain,distro,result -AutoSize
+  $session.per_question | Format-Table qid,domain,distro,result -AutoSize | Out-Host
 }
 
 function Save-ExamSession($session) {
   Ensure-DataFiles
   $existingRaw = Get-Content -Raw -LiteralPath $ExamSessionsPath
-  $existing = @()
-  if (![string]::IsNullOrWhiteSpace($existingRaw)) { $existing = @($existingRaw | ConvertFrom-Json) }
-  $all = @($existing) + @($session)
+  $existing = New-Object System.Collections.Generic.List[object]
+  if (![string]::IsNullOrWhiteSpace($existingRaw)) {
+    $parsed = $existingRaw | ConvertFrom-Json
+    @($parsed) | Where-Object { $null -ne $_ -and $_.PSObject.Properties.Name -contains "session_id" } | ForEach-Object {
+      [void]$existing.Add($_)
+    }
+  }
+  [void]$existing.Add([pscustomobject]$session)
+  $all = $existing.ToArray()
   $all | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $ExamSessionsPath -Encoding ascii
 }
 

@@ -1,0 +1,11 @@
+id: q064
+title: "Control process state for lfcs-op-proc6"
+domain: "Operations & Deployment"
+topic: "process management"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  A long-running process for lfcs-op-proc6 was started during setup.
+  Find the PID recorded in /run/lfcs-op-proc6.pid, renice it to 6, and write the PID to /root/lfcs-op-proc6.answer. The process must remain running.
+hints: ["Use ps, renice, and kill -0.", "The PID file identifies the exact process."]

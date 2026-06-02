@@ -1,0 +1,11 @@
+id: q098
+title: "Prepare cloud image disk lfcs-op-cloud2"
+domain: "Operations & Deployment"
+topic: "cloud-image VMs"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Prepare cloud-image artifacts without booting a nested VM.
+  Create a qcow2 overlay disk at /var/lib/libvirt/images/lfcs-op-cloud2.qcow2 sized 2G and write metadata file /var/lib/libvirt/images/lfcs-op-cloud2-meta.yaml with instance-id lfcs-op-cloud2.
+hints: ["Use qemu-img create.", "No nested guest should be started."]

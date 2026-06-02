@@ -1,0 +1,11 @@
+id: qR07
+title: "Persist SELinux boolean httpd_can_sendmail"
+domain: "Operations & Deployment"
+topic: "SELinux enable/manage"
+difficulty: medium
+distro: rocky
+vms: [lfcs-rocky1]
+question: |
+  Ensure SELinux is enforcing and persistently enable the boolean httpd_can_sendmail.
+  The change must survive a policy reload.
+hints: ["Use setsebool -P.", "getenforce must report Enforcing."]

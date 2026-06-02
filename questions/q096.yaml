@@ -1,0 +1,11 @@
+id: q096
+title: "Define libvirt resources lfcs-op-vm3"
+domain: "Operations & Deployment"
+topic: "KVM/virsh"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Define a libvirt domain named lfcs-op-vm3 from /root/lfcs-op-vm3.xml; do not boot it.
+  Also define, start, and autostart a dir storage pool named lfcs-op-vm3-pool at /var/lib/libvirt/lfcs-op-vm3-pool.
+hints: ["Use virsh define, pool-define-as, pool-start, and pool-autostart.", "Validation uses dumpxml and pool-info only."]

@@ -1,0 +1,11 @@
+id: qR11
+title: "Persist SELinux context for lfcs-r11-site"
+domain: "Operations & Deployment"
+topic: "SELinux context mgmt"
+difficulty: medium
+distro: rocky
+vms: [lfcs-rocky1]
+question: |
+  The directory /var/www/lfcs-r11-site and its files have the wrong SELinux type.
+  Add a persistent fcontext rule so everything below /var/www/lfcs-r11-site is httpd_sys_content_t, then restore the context.
+hints: ["Use semanage fcontext -a.", "restorecon applies persistent file-context rules."]

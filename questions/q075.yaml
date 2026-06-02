@@ -1,0 +1,11 @@
+id: q075
+title: "Use offline apt repository lfcs-op-apt2"
+domain: "Operations & Deployment"
+topic: "apt repositories"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Configure apt to use the local file repository at /opt/lfcs-apt-repo.
+  Create /etc/apt/sources.list.d/lfcs-op-apt2.list, update metadata without using the internet, and install package lfcs-apt-tool.
+hints: ["Use a file: repository with trusted=yes.", "The package is already staged in the base image."]

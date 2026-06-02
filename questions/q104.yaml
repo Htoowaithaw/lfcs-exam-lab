@@ -1,0 +1,11 @@
+id: q104
+title: "Set local security defaults lfcs-op-sec2"
+domain: "Operations & Deployment"
+topic: "local security"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Configure a system-wide shell default in /etc/profile.d/lfcs-op-sec2.sh.
+  Interactive shells must receive umask 027 and TMOUT=602; the file must not be world-writable.
+hints: ["Use /etc/profile.d for shell defaults.", "Validate permissions as well as content."]

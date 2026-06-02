@@ -1,0 +1,11 @@
+id: q072
+title: "Install scheduled task lfcs-op-cron10"
+domain: "Operations & Deployment"
+topic: "task scheduling cron/at"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create a root cron entry in /etc/cron.d/lfcs-op-cron10 that runs every 10 minutes and writes the literal text lfcs-op-cron10-ok to /var/tmp/lfcs-op-cron10.stamp.
+  Use a valid /etc/cron.d format with an explicit user field.
+hints: ["Files in /etc/cron.d need mode 0644.", "Include the user column."]

@@ -1,0 +1,11 @@
+id: q079
+title: "Build staged source package lfcs-hello-op3"
+domain: "Operations & Deployment"
+topic: "compile from source"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Build the staged source tarball /opt/lfcs-src/lfcs-hello-1.0.tar.gz.
+  Install the program as /usr/local/bin/lfcs-hello-op3 and make it print LFCS-COMPILED-3.
+hints: ["Extract the tarball under /usr/local/src.", "Use make install with BINARY and MESSAGE variables."]

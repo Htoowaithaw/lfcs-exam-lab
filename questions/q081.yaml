@@ -1,0 +1,11 @@
+id: q081
+title: "Capture resource data for lfcs-op-mon8"
+domain: "Operations & Deployment"
+topic: "resource monitoring"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Capture a process and memory snapshot into /root/lfcs-op-mon8.txt.
+  The file must include a ps header with PID, a vmstat header, and the current system load average line from uptime.
+hints: ["Use ps, vmstat, and uptime.", "The validator checks the artifact, not your terminal output."]

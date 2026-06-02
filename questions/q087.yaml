@@ -1,0 +1,11 @@
+id: q087
+title: "Load AppArmor profile lfcs-op-aa1"
+domain: "Operations & Deployment"
+topic: "AppArmor"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create and load an enforcing AppArmor profile for /usr/local/bin/lfcs-op-aa1.
+  The profile must allow basic read-only access and appear in aa-status.
+hints: ["Use apparmor_parser -r.", "Profile names normally follow the executable path."]

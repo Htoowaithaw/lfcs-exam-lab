@@ -1,0 +1,11 @@
+id: q086
+title: "Set sysctl kernel.dmesg_restrict"
+domain: "Operations & Deployment"
+topic: "sysctl"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Set kernel.dmesg_restrict to 1 immediately and persistently using /etc/sysctl.d/lfcs-op-sysctl3.conf.
+  The runtime value and the persistent file must both match.
+hints: ["Use sysctl -w for runtime.", "Use sysctl --system or sysctl -p for persistence."]

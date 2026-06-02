@@ -1,0 +1,10 @@
+id: q035
+title: "Match IPv4-like addresses"
+domain: "Essential Commands"
+topic: "basic regex"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q035-ips.txt containing only lines from /var/tmp/ec-q035/hosts.txt that begin with an IPv4 address.
+hints: ["Use grep basic or extended regex as requested.", "The output must preserve matching line order."]

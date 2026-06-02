@@ -1,0 +1,10 @@
+id: q040
+title: "Sort and unique inventory"
+domain: "Essential Commands"
+topic: "compare/manipulate file content"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q040-inventory.txt containing sorted unique package names from /var/tmp/ec-q040/packages.txt.
+hints: ["Use standard text processing tools.", "The output must exactly match the requested format."]

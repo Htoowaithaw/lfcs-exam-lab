@@ -1,0 +1,10 @@
+id: q053
+title: "Set SGID on a team directory"
+domain: "Essential Commands"
+topic: "SUID/SGID/sticky"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Configure /srv/ec-q053/team as root:adm with mode 2775.
+hints: ["Use chown/chgrp/chmod.", "Special bits are represented by the leading mode digit."]

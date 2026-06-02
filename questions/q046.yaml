@@ -1,0 +1,10 @@
+id: q046
+title: "Find recently modified configs"
+domain: "Essential Commands"
+topic: "find deep dive"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Find *.conf files under /var/tmp/ec-q046/tree modified within the last 2 days and write relative paths sorted to /root/q046-recent-conf.txt.
+hints: ["Use find predicates carefully.", "Sort the output for deterministic validation."]

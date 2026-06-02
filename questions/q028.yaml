@@ -1,0 +1,10 @@
+id: q028
+title: "Use trap cleanup in a script"
+domain: "Essential Commands"
+topic: "bash scripting advanced"
+difficulty: hard
+distro: ubuntu
+vms: [node1]
+question: |
+  Create executable /usr/local/bin/q028-process.sh. It must create a temp directory under /tmp, copy /var/tmp/ec-q028/input.txt into it, write the uppercase content to /root/q028-output.txt, and remove its temp directory before exit. The script must define an EXIT trap.
+hints: ["Use mktemp -d and trap.", "tr can uppercase text."]

@@ -1,0 +1,10 @@
+id: q038
+title: "Match production hosts"
+domain: "Essential Commands"
+topic: "extended regex egrep"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q038-prod-hosts.txt containing hostnames webNN-prod or dbNN-prod from /var/tmp/ec-q038/hosts.txt.
+hints: ["Use grep basic or extended regex as requested.", "The output must preserve matching line order."]

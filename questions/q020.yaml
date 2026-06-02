@@ -1,0 +1,10 @@
+id: q020
+title: "Mirror selected files with rsync"
+domain: "Essential Commands"
+topic: "tar/gzip/rsync/dd"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Use rsync to mirror /var/tmp/ec-q020/source/ to /srv/ec-q020/mirror/. Include *.conf files and directories, exclude *.tmp files, and delete stale files already present in the mirror.
+hints: ["Use include/exclude patterns.", "The destination should not keep stale.txt."]

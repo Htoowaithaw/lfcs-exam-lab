@@ -1,6 +1,7 @@
 id: q003
 title: "Fix and enable a systemd service"
 domain: "Operations & Deployment"
+topic: "systemd service files"
 difficulty: medium
 distro: ubuntu
 vms: [node1]

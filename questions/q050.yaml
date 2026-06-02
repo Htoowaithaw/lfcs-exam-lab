@@ -1,0 +1,10 @@
+id: q050
+title: "Set executable group script"
+domain: "Essential Commands"
+topic: "chmod/chown/chgrp"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Configure /srv/ec-q050/run.sh as owner root, group staff, mode 0750.
+hints: ["Use chown/chgrp/chmod.", "Special bits are represented by the leading mode digit."]

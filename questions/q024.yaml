@@ -1,0 +1,10 @@
+id: q024
+title: "Count failed logins"
+domain: "Essential Commands"
+topic: "bash scripting basic"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create executable /usr/local/bin/q024-count-fails.sh. It must count lines containing FAILED in /var/tmp/ec-q024/auth.log and write only the number to /root/q024-fail-count.txt.
+hints: ["Use grep -c.", "The output file should contain only a number."]

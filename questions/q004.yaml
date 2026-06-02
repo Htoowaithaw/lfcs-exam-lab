@@ -1,6 +1,7 @@
 id: q004
 title: "Schedule a root cron job"
 domain: "Operations & Deployment"
+topic: "task scheduling cron/at"
 difficulty: easy
 distro: ubuntu
 vms: [node1]

@@ -1,0 +1,10 @@
+id: q039
+title: "Match valid ticket IDs"
+domain: "Essential Commands"
+topic: "extended regex egrep"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q039-tickets.txt containing ticket IDs in the form LFCS- followed by exactly four digits.
+hints: ["Use grep basic or extended regex as requested.", "The output must preserve matching line order."]

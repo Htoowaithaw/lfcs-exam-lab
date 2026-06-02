@@ -1,0 +1,10 @@
+id: q058
+title: "Create and switch to a branch"
+domain: "Essential Commands"
+topic: "git"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  In /var/tmp/ec-q058/repo, create and switch to branch feature/ec-q058, add feature.txt containing enabled, and commit it with message add feature flag.
+hints: ["Use git status to inspect state.", "Configure commit identity inline if needed."]

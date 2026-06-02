@@ -1,0 +1,10 @@
+id: q055
+title: "Grant ACL read access"
+domain: "Essential Commands"
+topic: "ACL+chattr"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Grant user nobody read-only ACL access to /srv/ec-q055/secret.txt while keeping file mode 0640.
+hints: ["Use setfacl/getfacl or chattr/lsattr.", "The validator checks the exact access or attribute."]

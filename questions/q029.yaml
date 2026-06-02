@@ -1,0 +1,10 @@
+id: q029
+title: "Validate command-line options"
+domain: "Essential Commands"
+topic: "bash scripting advanced"
+difficulty: hard
+distro: ubuntu
+vms: [node1]
+question: |
+  Create executable /usr/local/bin/q029-filter.sh. It must accept --min N and print numbers from /var/tmp/ec-q029/numbers.txt greater than or equal to N. If --min is missing, exit non-zero.
+hints: ["Use a while/case option parser.", "awk can compare numeric values."]

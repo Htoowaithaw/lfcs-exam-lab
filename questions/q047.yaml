@@ -1,0 +1,10 @@
+id: q047
+title: "Find world-writable files"
+domain: "Essential Commands"
+topic: "find deep dive"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Find world-writable regular files under /var/tmp/ec-q047/tree and write relative paths sorted to /root/q047-world-writable.txt.
+hints: ["Use find predicates carefully.", "Sort the output for deterministic validation."]

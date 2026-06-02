@@ -1,0 +1,10 @@
+id: q052
+title: "Set SUID on a copied binary"
+domain: "Essential Commands"
+topic: "SUID/SGID/sticky"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Set the SUID bit on /usr/local/bin/q052-idcopy. It must remain owned by root:root and executable by everyone.
+hints: ["Use chown/chgrp/chmod.", "Special bits are represented by the leading mode digit."]

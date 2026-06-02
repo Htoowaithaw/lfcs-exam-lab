@@ -1,0 +1,10 @@
+id: q025
+title: "Create users report script"
+domain: "Essential Commands"
+topic: "bash scripting basic"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create executable /usr/local/bin/q025-shell-report.sh. It must read /var/tmp/ec-q025/passwd.sample and write /root/q025-bash-users.txt containing usernames whose shell is /bin/bash, sorted alphabetically.
+hints: ["Fields are colon-separated.", "Use sort for deterministic output."]

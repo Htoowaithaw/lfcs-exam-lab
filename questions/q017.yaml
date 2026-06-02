@@ -1,0 +1,10 @@
+id: q017
+title: "Apply a configuration patch"
+domain: "Essential Commands"
+topic: "diff/patch/file"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Apply /var/tmp/ec-q017/app.patch to /etc/ec-q017/app.conf. The patched file must set port=9443, tls=enabled, and log_level=info.
+hints: ["Use patch with the correct working directory.", "Inspect the patch headers."]

@@ -1,0 +1,10 @@
+id: q026
+title: "Parameterize a greeting script"
+domain: "Essential Commands"
+topic: "bash scripting basic"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create executable /usr/local/bin/q026-greet.sh. When run with one argument, it must write Hello, <argument> to stdout. With no arguments, it must write Hello, LFCS.
+hints: ["Use ${1:-LFCS}.", "The validator checks both cases."]

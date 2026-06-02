@@ -1,0 +1,10 @@
+id: q051
+title: "Recursively group project files"
+domain: "Essential Commands"
+topic: "chmod/chown/chgrp"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Configure /srv/ec-q051/project and all contents with group adm. Directories must be 2770 and files 0660.
+hints: ["Use chown/chgrp/chmod.", "Special bits are represented by the leading mode digit."]

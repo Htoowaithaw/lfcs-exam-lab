@@ -1,6 +1,7 @@
 id: q005
 title: "Configure local hostname resolution"
 domain: "Networking"
+topic: "IPv4/IPv6 + hostname resolution"
 difficulty: easy
 distro: ubuntu
 vms: [node1]

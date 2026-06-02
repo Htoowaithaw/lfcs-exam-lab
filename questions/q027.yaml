@@ -1,0 +1,10 @@
+id: q027
+title: "Summarize CSV by status"
+domain: "Essential Commands"
+topic: "bash scripting advanced"
+difficulty: hard
+distro: ubuntu
+vms: [node1]
+question: |
+  Create executable /usr/local/bin/q027-status-summary.sh. It must read /var/tmp/ec-q027/events.csv and write /root/q027-summary.txt with counts for OK, WARN, and FAIL in that exact order as status=count.
+hints: ["Skip the CSV header.", "Associative arrays are useful."]

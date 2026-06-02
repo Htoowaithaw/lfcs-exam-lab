@@ -1,0 +1,10 @@
+id: q011
+title: "Organize application directories"
+domain: "Essential Commands"
+topic: "filesystem layout"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create the directory tree /srv/lfcs/ec-layout/{bin,conf,logs/archive}. Move /var/tmp/ec-q011/app.conf into conf/config.ini, create an empty executable /srv/lfcs/ec-layout/bin/run-check, and create a relative symbolic link /srv/lfcs/ec-layout/latest-log pointing to logs/current.log.
+hints: ["Use mkdir -p for nested directories.", "The latest-log symlink must be relative."]

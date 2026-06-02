@@ -1,6 +1,7 @@
 id: q009
 title: "Create a constrained user account"
 domain: "Users and Groups"
+topic: "local user accounts"
 difficulty: easy
 distro: ubuntu
 vms: [node1]

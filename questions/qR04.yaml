@@ -1,6 +1,7 @@
 id: qR04
 title: "Create a DNF repository and install a package"
 domain: "Operations & Deployment"
+topic: "dnf/yum repositories"
 difficulty: hard
 distro: rocky
 vms: [lfcs-rocky1]

@@ -1,0 +1,10 @@
+id: q014
+title: "Edit service configuration values"
+domain: "Essential Commands"
+topic: "vim"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Edit /etc/lfcs-q014/app.ini so environment is production, debug is false, and workers is 4. Preserve the existing [app] header and listen value.
+hints: ["Any editor is fine; vim is available.", "Only the requested keys should change."]

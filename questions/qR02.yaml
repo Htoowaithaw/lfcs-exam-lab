@@ -1,6 +1,7 @@
 id: qR02
 title: "Persistently enable an SELinux boolean"
 domain: "Operations & Deployment"
+topic: "SELinux enable/manage"
 difficulty: medium
 distro: rocky
 vms: [lfcs-rocky1]

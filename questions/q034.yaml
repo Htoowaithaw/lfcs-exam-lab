@@ -1,0 +1,10 @@
+id: q034
+title: "Match service names ending in digits"
+domain: "Essential Commands"
+topic: "basic regex"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q034-services.txt containing service names from /var/tmp/ec-q034/services.txt that end with two digits.
+hints: ["Use grep basic or extended regex as requested.", "The output must preserve matching line order."]

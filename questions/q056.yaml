@@ -1,0 +1,10 @@
+id: q056
+title: "Set immutable attribute"
+domain: "Essential Commands"
+topic: "ACL+chattr"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Set the immutable attribute on /srv/ec-q056/locked.conf.
+hints: ["Use setfacl/getfacl or chattr/lsattr.", "The validator checks the exact access or attribute."]

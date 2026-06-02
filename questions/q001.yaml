@@ -1,6 +1,7 @@
 id: q001
 title: "Archive selected log files"
 domain: "Essential Commands"
+topic: "tar/gzip/rsync/dd"
 difficulty: easy
 distro: ubuntu
 vms: [node1]

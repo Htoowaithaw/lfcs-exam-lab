@@ -1,6 +1,7 @@
 id: q007
 title: "Create and mount an ext4 filesystem"
 domain: "Storage"
+topic: "create/configure filesystems"
 difficulty: medium
 distro: ubuntu
 vms: [node1]

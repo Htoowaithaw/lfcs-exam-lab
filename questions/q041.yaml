@@ -1,0 +1,10 @@
+id: q041
+title: "Extract selected fields"
+domain: "Essential Commands"
+topic: "compare/manipulate file content"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q041-users.csv containing username,shell from /var/tmp/ec-q041/passwd.sample for users with UID >= 1000, sorted by username.
+hints: ["Use standard text processing tools.", "The output must exactly match the requested format."]

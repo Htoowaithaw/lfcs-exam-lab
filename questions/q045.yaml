@@ -1,0 +1,10 @@
+id: q045
+title: "Find large rotated logs"
+domain: "Essential Commands"
+topic: "find deep dive"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Find files under /var/tmp/ec-q045/tree larger than 1 KiB with names ending .log and write their basenames sorted to /root/q045-large-logs.txt.
+hints: ["Use find predicates carefully.", "Sort the output for deterministic validation."]

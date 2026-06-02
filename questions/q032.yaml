@@ -1,0 +1,10 @@
+id: q032
+title: "List non-comment config lines"
+domain: "Essential Commands"
+topic: "grep"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q032-active.conf containing only active, non-empty, non-comment lines from /var/tmp/ec-q032/sshd.conf, preserving order.
+hints: ["Use grep.", "Preserve the order of matching lines."]

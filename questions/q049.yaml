@@ -1,0 +1,10 @@
+id: q049
+title: "Set secure file ownership"
+domain: "Essential Commands"
+topic: "chmod/chown/chgrp"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Configure /srv/ec-q049/report.txt as owner root, group adm, mode 0640.
+hints: ["Use chown/chgrp/chmod.", "Special bits are represented by the leading mode digit."]

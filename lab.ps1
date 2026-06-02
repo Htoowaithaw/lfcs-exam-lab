@@ -253,7 +253,8 @@ function Validate-Question($question) {
 function Invoke-Solution($question) {
   $qid = $question.id
   $target = Get-TargetMachine $question
-  $result = Invoke-DirectSsh $target "sudo bash /vagrant/solutions/$qid.sh"
+  $solutionPath = if (Test-Path (Join-Path $LabRoot "solution/$qid.sh")) { "solution" } else { "solutions" }
+  $result = Invoke-DirectSsh $target "sudo bash /vagrant/$solutionPath/$qid.sh"
   $result.Output | ForEach-Object { Write-Host $_ }
   if ($result.Code -ne 0) { throw "Solution failed for $qid on $target" }
 }

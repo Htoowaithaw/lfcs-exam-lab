@@ -1,6 +1,7 @@
 id: q006
 title: "Add a static route"
 domain: "Networking"
+topic: "routing"
 difficulty: medium
 distro: ubuntu
 vms: [node1]

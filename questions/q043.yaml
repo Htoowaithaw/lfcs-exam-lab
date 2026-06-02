@@ -1,0 +1,10 @@
+id: q043
+title: "Create a paged excerpt"
+domain: "Essential Commands"
+topic: "less/more pagers"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q043-page.txt containing lines 40 through 45 from /var/tmp/ec-q043/manual.txt, each prefixed with its line number as NN: text.
+hints: ["less and more are pagers, but redirected command output is acceptable.", "Exact line ranges matter."]

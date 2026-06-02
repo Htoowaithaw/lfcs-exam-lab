@@ -1,0 +1,10 @@
+id: q016
+title: "Rewrite a message of the day"
+domain: "Essential Commands"
+topic: "vim"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Edit /etc/lfcs-q016/motd so it contains exactly three lines: LFCS Practice Node, Authorized users only, and Maintenance: Sunday 02:00 UTC.
+hints: ["Replace the whole file content.", "Exact line order matters."]

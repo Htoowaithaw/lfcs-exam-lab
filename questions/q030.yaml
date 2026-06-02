@@ -1,0 +1,10 @@
+id: q030
+title: "Extract error log lines"
+domain: "Essential Commands"
+topic: "grep"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q030-matches.txt containing lines from /var/tmp/ec-q030/input.log that match the fixed string ERROR, preserving order.
+hints: ["Use grep.", "Preserve the order of matching lines."]

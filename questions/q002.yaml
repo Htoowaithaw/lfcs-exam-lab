@@ -1,6 +1,7 @@
 id: q002
 title: "Set permissions and create a symlink"
 domain: "Essential Commands"
+topic: "chmod/chown/chgrp"
 difficulty: easy
 distro: ubuntu
 vms: [node1]

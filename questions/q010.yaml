@@ -1,6 +1,7 @@
 id: q010
 title: "Configure shared group access"
 domain: "Users and Groups"
+topic: "groups & memberships"
 difficulty: medium
 distro: ubuntu
 vms: [node1]

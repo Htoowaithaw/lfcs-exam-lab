@@ -1,0 +1,10 @@
+id: q031
+title: "Find fixed-string API hits"
+domain: "Essential Commands"
+topic: "grep"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q031-matches.txt containing lines from /var/tmp/ec-q031/input.log that match the fixed string api/v1, preserving order.
+hints: ["Use grep.", "Preserve the order of matching lines."]

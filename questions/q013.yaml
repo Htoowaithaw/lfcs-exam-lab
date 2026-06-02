@@ -1,0 +1,10 @@
+id: q013
+title: "Normalize misplaced files"
+domain: "Essential Commands"
+topic: "filesystem layout"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Files are misplaced under /var/tmp/ec-q013/incoming. Create /srv/ec-q013/{docs,bin,data}; move every *.md file into docs, every *.sh file into bin, and every *.csv file into data. Make the shell scripts executable and leave no files in incoming.
+hints: ["Use globs carefully.", "The validator checks that incoming is empty."]

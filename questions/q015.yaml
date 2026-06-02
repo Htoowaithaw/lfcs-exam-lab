@@ -1,0 +1,10 @@
+id: q015
+title: "Repair a hosts-style file"
+domain: "Essential Commands"
+topic: "vim"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Edit /etc/lfcs-q015/hosts.extra: remove the duplicate old-api entry, change api.lfcs.local to 10.20.30.40, and add db.lfcs.local at 10.20.30.41.
+hints: ["Use search and replace.", "The validator rejects duplicate names."]

@@ -1,0 +1,10 @@
+id: q044
+title: "Capture the first screen"
+domain: "Essential Commands"
+topic: "less/more pagers"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q044-first-screen.txt containing exactly the first 12 lines of /var/tmp/ec-q044/long-output.txt.
+hints: ["less and more are pagers, but redirected command output is acceptable.", "Exact line ranges matter."]

@@ -1,6 +1,7 @@
 id: q008
 title: "Create persistent swap"
 domain: "Storage"
+topic: "swap"
 difficulty: medium
 distro: ubuntu
 vms: [node1]

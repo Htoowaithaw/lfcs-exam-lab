@@ -1,0 +1,10 @@
+id: q018
+title: "Classify files by type"
+domain: "Essential Commands"
+topic: "diff/patch/file"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q018-types.txt with one line per file under /var/tmp/ec-q018/files, sorted by file name, in the format name:type. Use text, gzip, and directory as the type labels.
+hints: ["The file command identifies data types.", "The validator expects exactly three lines."]

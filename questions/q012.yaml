@@ -1,0 +1,10 @@
+id: q012
+title: "Create a release skeleton"
+domain: "Essential Commands"
+topic: "filesystem layout"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Under /opt/ec-q012 create releases/2026.06, shared/tmp, and shared/cache. Copy /var/tmp/ec-q012/VERSION to releases/2026.06/VERSION, make /opt/ec-q012/current a symlink to releases/2026.06, and ensure shared/tmp has mode 1777.
+hints: ["Use install -d or mkdir -p.", "Mode 1777 is the sticky world-writable directory pattern."]

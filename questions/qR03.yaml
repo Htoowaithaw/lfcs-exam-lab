@@ -1,6 +1,7 @@
 id: qR03
 title: "Open a permanent firewalld port"
 domain: "Networking"
+topic: "firewall - firewalld"
 difficulty: medium
 distro: rocky
 vms: [lfcs-rocky1]

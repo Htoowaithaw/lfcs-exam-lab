@@ -1,0 +1,10 @@
+id: q019
+title: "Generate a unified diff"
+domain: "Essential Commands"
+topic: "diff/patch/file"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Compare /var/tmp/ec-q019/original.txt and /var/tmp/ec-q019/updated.txt and write a unified diff to /root/q019-change.diff. The diff must show removal of beta=old and addition of beta=new.
+hints: ["Use diff -u.", "Redirect the diff output to the requested path."]

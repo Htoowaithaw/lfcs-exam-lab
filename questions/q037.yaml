@@ -1,0 +1,10 @@
+id: q037
+title: "Match HTTP success or redirect codes"
+domain: "Essential Commands"
+topic: "extended regex egrep"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q037-http-ok.txt containing log lines whose status is 2xx or 3xx.
+hints: ["Use grep basic or extended regex as requested.", "The output must preserve matching line order."]

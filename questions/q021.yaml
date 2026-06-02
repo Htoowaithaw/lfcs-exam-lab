@@ -1,0 +1,10 @@
+id: q021
+title: "Create a fixed-size disk image"
+domain: "Essential Commands"
+topic: "tar/gzip/rsync/dd"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q021-zero.img as a 10 MiB zero-filled image using dd. Its size must be exactly 10485760 bytes.
+hints: ["Use bs=1M count=10.", "The validator checks size and contents."]

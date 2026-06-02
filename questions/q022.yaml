@@ -1,0 +1,10 @@
+id: q022
+title: "Compress and preserve a log"
+domain: "Essential Commands"
+topic: "tar/gzip/rsync/dd"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Compress /var/tmp/ec-q022/audit.log to /root/q022-audit.log.gz with gzip, preserving the original source file. The compressed file must decompress to the original content.
+hints: ["gzip -c writes compressed data to stdout.", "Redirect to the target path."]

@@ -1,6 +1,7 @@
 id: qR01
 title: "Restore an SELinux web context"
 domain: "Operations & Deployment"
+topic: "SELinux context mgmt"
 difficulty: medium
 distro: rocky
 vms: [lfcs-rocky1]

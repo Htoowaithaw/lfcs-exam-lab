@@ -1,0 +1,10 @@
+id: q033
+title: "Count warnings per log"
+domain: "Essential Commands"
+topic: "grep"
+difficulty: easy
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q033-warn-counts.txt with WARN counts for each .log file in /var/tmp/ec-q033/logs, sorted by file name, as file:count.
+hints: ["Use grep.", "Preserve the order of matching lines."]

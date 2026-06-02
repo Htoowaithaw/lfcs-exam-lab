@@ -1,0 +1,10 @@
+id: q023
+title: "Write a backup script"
+domain: "Essential Commands"
+topic: "bash scripting basic"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /usr/local/bin/q023-backup.sh. When run, it must create /root/q023-backup.tar.gz containing the files from /var/tmp/ec-q023/data with paths relative to that directory. The script must be executable.
+hints: ["Use a shebang.", "Use tar -C inside the script."]

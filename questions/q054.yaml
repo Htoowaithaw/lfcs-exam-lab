@@ -1,0 +1,10 @@
+id: q054
+title: "Set sticky bit on upload directory"
+domain: "Essential Commands"
+topic: "SUID/SGID/sticky"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Configure /srv/ec-q054/uploads as root:root with mode 1777.
+hints: ["Use chown/chgrp/chmod.", "Special bits are represented by the leading mode digit."]

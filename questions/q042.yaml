@@ -1,0 +1,10 @@
+id: q042
+title: "Join two data files"
+domain: "Essential Commands"
+topic: "compare/manipulate file content"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/q042-owners.txt by joining IDs in /var/tmp/ec-q042/assets.txt with names in /var/tmp/ec-q042/owners.txt as asset=name, sorted by asset.
+hints: ["Use standard text processing tools.", "The output must exactly match the requested format."]

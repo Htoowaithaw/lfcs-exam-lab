@@ -1,0 +1,10 @@
+id: q057
+title: "Commit tracked changes"
+domain: "Essential Commands"
+topic: "git"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  In /var/tmp/ec-q057/repo, commit the modification to app.txt with commit message update app config. Leave the working tree clean.
+hints: ["Use git status to inspect state.", "Configure commit identity inline if needed."]

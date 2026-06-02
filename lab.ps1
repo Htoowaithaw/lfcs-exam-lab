@@ -72,7 +72,7 @@ function Ensure-DataFiles {
 
 function Read-Question($path) {
   $lines = Get-Content -LiteralPath $path
-  $q = [ordered]@{ id=""; title=""; domain=""; difficulty=""; distro=""; question=""; hints=@() }
+  $q = [ordered]@{ id=""; title=""; domain=""; difficulty=""; distro="ubuntu"; question=""; hints=@(); path=$path }
   for ($i = 0; $i -lt $lines.Count; $i++) {
     $line = $lines[$i]
     if ($line -match '^id:\s*(.+)$') { $q.id = $Matches[1].Trim('" ') }
@@ -97,13 +97,23 @@ function Read-Question($path) {
       }
     }
   }
+  if ([string]::IsNullOrWhiteSpace($q.id)) {
+    throw "Question file '$path' has no id"
+  }
   return [pscustomobject]$q
 }
 
 function Get-Questions {
-  Get-ChildItem -LiteralPath (Join-Path $LabRoot "questions") -Filter "*.yaml" |
-    Sort-Object Name |
-    ForEach-Object { Read-Question $_.FullName }
+  $questionDir = Join-Path $LabRoot "questions"
+  @(
+    Get-ChildItem -LiteralPath $questionDir -Filter "*.yaml" |
+      ForEach-Object { Read-Question $_.FullName } |
+      Sort-Object @{ Expression = {
+        if ($_.id -match '^qR(\d+)$') { return 10000 + [int]$Matches[1] }
+        if ($_.id -match '^q(\d+)$') { return [int]$Matches[1] }
+        return 99999
+      }}, id
+  )
 }
 
 function Invoke-Vagrant {
@@ -147,10 +157,7 @@ function Save-SshCache($cache) {
   $cache | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $SshCachePath -Encoding ascii
 }
 
-function Get-SshInfo($machine) {
-  $cache = Read-SshCache
-  if ($cache.ContainsKey($machine)) { return $cache[$machine] }
-
+function Get-SshInfoFromVagrant($machine) {
   Push-Location $LabRoot
   try {
     $config = & vagrant ssh-config $machine
@@ -168,9 +175,49 @@ function Get-SshInfo($machine) {
     elseif ($line -match '^\s*User\s+(.+)\s*$') { $info.User = $Matches[1].Trim() }
   }
   if (!$info.HostName -or !$info.Port -or !$info.IdentityFile) { throw "Incomplete SSH config for $machine" }
-  $cache[$machine] = $info
-  Save-SshCache $cache
   return $info
+}
+
+function Refresh-SshCache {
+  $cache = @{}
+  foreach ($machine in @("node1", "lfcs-rocky1")) {
+    $cache[$machine] = Get-SshInfoFromVagrant $machine
+  }
+  Save-SshCache $cache
+  return $cache
+}
+
+function Get-SshInfo($machine) {
+  $cache = Read-SshCache
+  if (!$cache.ContainsKey("node1") -or !$cache.ContainsKey("lfcs-rocky1")) {
+    $cache = Refresh-SshCache
+  }
+  if ($cache.ContainsKey($machine)) {
+    return $cache[$machine]
+  }
+  throw "No SSH cache entry for $machine"
+}
+
+function Invoke-InteractiveSsh($machine) {
+  $info = Get-SshInfo $machine
+  $knownHosts = if ($IsWindows -or $env:OS -eq "Windows_NT") { "NUL" } else { "/dev/null" }
+  Write-Host "Opening SSH shell for $machine. Type 'exit' to return to the lab menu."
+  $sshArgs = @(
+    $(if ([Console]::IsInputRedirected) { "-T" } else { "-tt" }),
+    "-o", "StrictHostKeyChecking=no",
+    "-o", "UserKnownHostsFile=$knownHosts",
+    "-o", "LogLevel=ERROR",
+    "-o", "PasswordAuthentication=no",
+    "-o", "IdentitiesOnly=yes",
+    "-i", $info.IdentityFile,
+    "-p", $info.Port,
+    "$($info.User)@$($info.HostName)"
+  )
+  if ([Console]::IsInputRedirected) {
+    $sshArgs += "bash -l"
+  }
+  & ssh @sshArgs
+  if ($LASTEXITCODE -ne 0) { Write-Host "SSH exited with code $LASTEXITCODE" }
 }
 
 function Invoke-DirectSsh($machine, $command) {
@@ -197,7 +244,8 @@ function Invoke-DirectSsh($machine, $command) {
 }
 
 function Wait-DirectSsh($machine) {
-  $deadline = (Get-Date).AddSeconds(120)
+  $timeoutSeconds = if ($machine -eq "lfcs-rocky1") { 300 } else { 120 }
+  $deadline = (Get-Date).AddSeconds($timeoutSeconds)
   while ((Get-Date) -lt $deadline) {
     $result = Invoke-DirectSsh $machine "true"
     if ($result.Code -eq 0) { return }
@@ -207,6 +255,24 @@ function Wait-DirectSsh($machine) {
 }
 
 function Restore-BaseSnapshot($machine) {
+  if ($machine -eq "lfcs-rocky1") {
+    $vboxName = Get-VBoxName $machine
+    $info = & $VBoxManage showvminfo $vboxName --machinereadable
+    if ($LASTEXITCODE -ne 0) { throw "VBoxManage showvminfo failed for $vboxName" }
+    $stateLine = $info | Where-Object { $_ -match '^VMState=' } | Select-Object -First 1
+    if ($stateLine -match '"running"') {
+      & $VBoxManage controlvm $vboxName poweroff | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "VBoxManage poweroff failed for $vboxName" }
+      Start-Sleep -Seconds 3
+    }
+    & $VBoxManage snapshot $vboxName restore base | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "VBoxManage snapshot restore failed for $vboxName" }
+    & $VBoxManage startvm $vboxName --type headless | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "VBoxManage startvm failed for $vboxName" }
+    Wait-DirectSsh $machine
+    return
+  }
+
   if ($UseVagrantRestore) {
     $rc = Invoke-Vagrant "snapshot" "restore" $machine "base" "--no-provision"
     if ($rc -ne 0) { throw "Vagrant snapshot restore failed for $machine" }
@@ -267,14 +333,17 @@ function Get-RemainingText($endTs) {
 function Show-QuestionMenu {
   $progress = Read-Progress
   $questions = @(Get-Questions)
+  if ($questions.Count -eq 0) {
+    throw "No questions found under $(Join-Path $LabRoot 'questions')"
+  }
   Write-Host ""
-  Write-Host "LFCS Practice Questions"
-  Write-Host "======================="
+  Write-Host "LFCS Practice Questions ($($questions.Count))"
+  Write-Host "=============================="
   for ($i = 0; $i -lt $questions.Count; $i++) {
     $q = $questions[$i]
     $status = if ($progress.ContainsKey($q.id)) { $progress[$q.id].status } else { "new" }
     $attempts = if ($progress.ContainsKey($q.id)) { $progress[$q.id].attempts } else { 0 }
-    "{0,2}. {1} [{2}, attempts={3}] - {4} ({5})" -f ($i + 1), $q.id, $status, $attempts, $q.title, $q.domain
+    Write-Host ("{0,3}. {1} [{2}, attempts={3}] - {4} ({5})" -f ($i + 1), $q.id, $status, $attempts, $q.title, $q.domain)
   }
   Write-Host " q. quit"
   return $questions
@@ -303,6 +372,9 @@ function Start-PracticeMode {
     }
 
     $current = $questions[[int]$choice - 1]
+    if ($null -eq $current -or [string]::IsNullOrWhiteSpace($current.id)) {
+      throw "Selected question number '$choice' did not resolve to a real qid"
+    }
     Load-Question $current
     $showHints = $false
 
@@ -321,7 +393,7 @@ function Start-PracticeMode {
       Write-Host "[v] validate  [s] ssh  [r] reload/reset  [h] toggle hints  [q] question menu"
       $action = Read-Host "Action"
       if ($action -eq "v") { [void](Validate-Question $current); Read-Host "Press Enter" }
-      elseif ($action -eq "s") { [void](Invoke-Vagrant "ssh" (Get-TargetMachine $current)) }
+      elseif ($action -eq "s") { Invoke-InteractiveSsh (Get-TargetMachine $current) }
       elseif ($action -eq "r") { Load-Question $current }
       elseif ($action -eq "h") { $showHints = !$showHints }
       elseif ($action -eq "q") { break }
@@ -430,7 +502,7 @@ function Start-ExamMode {
     Write-Host "Exam Questions - time remaining $remaining"
     for ($i = 0; $i -lt $questions.Count; $i++) {
       $q = $questions[$i]
-      "{0,2}. {1} [{2}] - {3} ({4}, {5})" -f ($i + 1), $q.id, $session.per_question[$i].result, $q.title, $q.domain, $(if ($q.distro) { $q.distro } else { "ubuntu" })
+      Write-Host ("{0,2}. {1} [{2}] - {3} ({4}, {5})" -f ($i + 1), $q.id, $session.per_question[$i].result, $q.title, $q.domain, $(if ($q.distro) { $q.distro } else { "ubuntu" }))
     }
     Write-Host " e. end exam"
     if (@($session.per_question | Where-Object { $_.result -eq "UNVALIDATED" }).Count -eq 0) {
@@ -459,13 +531,14 @@ function Start-ExamMode {
         $rc = Validate-Question $current
         $session.per_question[$idx].result = if ($rc -eq 0) { "PASS" } else { "FAIL" }
       }
-      elseif ($action -eq "s") { [void](Invoke-Vagrant "ssh" (Get-TargetMachine $current)) }
+      elseif ($action -eq "s") { Invoke-InteractiveSsh (Get-TargetMachine $current) }
       elseif ($action -eq "b") { break }
     }
   }
 }
 
 Ensure-DataFiles
+Refresh-SshCache | Out-Null
 
 if ($Mode -eq "Practice") {
   Start-PracticeMode

@@ -295,6 +295,60 @@ function Wait-DirectSsh($machine) {
   throw "SSH did not become ready for $machine"
 }
 
+function Wait-PeerSsh($machines) {
+  if (@($machines).Count -lt 2) { return }
+  $checks = @(
+    @{ machine="node1"; peer="192.168.56.12" },
+    @{ machine="node2"; peer="192.168.56.11" }
+  )
+  foreach ($check in $checks) {
+    if ($machines -notcontains $check.machine) { continue }
+    $deadline = (Get-Date).AddSeconds(60)
+    while ((Get-Date) -lt $deadline) {
+      $result = Invoke-DirectSsh $check.machine "timeout 2 bash -c '</dev/tcp/$($check.peer)/22'"
+      if ($result.Code -eq 0) { break }
+      Start-Sleep -Seconds 2
+    }
+    if ((Get-Date) -ge $deadline) { throw "Peer SSH not ready from $($check.machine) to $($check.peer)" }
+  }
+}
+
+function Get-ServiceReadinessCommands($question) {
+  $qidNum = [int]$question.id.Substring(1)
+  switch ($question.topic) {
+    "NFS" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/2049'") }
+    "NBD" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/10809'") }
+    "reverse proxy & load balancer" {
+      $n = $qidNum - 214
+      $backend = 18700 + $n
+      $listen = 18800 + $n
+      return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/$backend'", "timeout 2 bash -c '</dev/tcp/127.0.0.1/$listen'")
+    }
+    "port redirection & NAT" {
+      $n = $qidNum - 208
+      $port = 18600 + $n
+      return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/$port'")
+    }
+    "NTP time sync" { return @("chronyc sources -n | grep -q '192.168.56.12'") }
+    "SSH server & client" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/22'") }
+    "LDAP accounts" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/389'") }
+    default { return @() }
+  }
+}
+
+function Wait-ServiceReadiness($question, $primary) {
+  $commands = @(Get-ServiceReadinessCommands $question)
+  foreach ($command in $commands) {
+    $deadline = (Get-Date).AddSeconds(60)
+    while ((Get-Date) -lt $deadline) {
+      $result = Invoke-DirectSsh $primary $command
+      if ($result.Code -eq 0) { break }
+      Start-Sleep -Seconds 2
+    }
+    if ((Get-Date) -ge $deadline) { throw "Readiness wait failed on ${primary}: $command" }
+  }
+}
+
 function Restore-BaseSnapshot($machine) {
   if ($machine -eq "lfcs-rocky1") {
     $vboxName = Get-VBoxName $machine
@@ -366,6 +420,7 @@ function Load-Question($question) {
     Write-Host "Restoring $target base snapshot..."
     Restore-BaseSnapshot $target
   }
+  Wait-PeerSsh $machines
   foreach ($target in $machines) {
     $machineScript = Join-Path $LabRoot "inject/$qid.$target.sh"
     $defaultScript = Join-Path $LabRoot "inject/$qid.sh"
@@ -390,6 +445,8 @@ function Load-Question($question) {
 function Validate-Question($question) {
   $qid = $question.id
   $target = Get-TargetMachine $question
+  $machines = @(Get-QuestionMachines $question)
+  if ($machines.Count -gt 1) { Wait-ServiceReadiness $question $target }
   $result = Invoke-DirectSsh $target "sudo bash /vagrant/validate/$qid.sh"
   $result.Output | ForEach-Object { Write-Host $_ }
   $status = if ($result.Code -eq 0) { "pass" } else { "fail" }
@@ -404,14 +461,12 @@ function Invoke-Solution($question) {
   foreach ($target in $solutionMachines) {
     $machineScript = Join-Path $LabRoot "solution/$qid.$target.sh"
     $defaultScript = Join-Path $LabRoot "solution/$qid.sh"
-    $legacyDefaultScript = Join-Path $LabRoot "solutions/$qid.sh"
     if (Test-Path $machineScript) {
       $result = Invoke-DirectSsh $target "sudo bash /vagrant/solution/$qid.$target.sh"
       $result.Output | ForEach-Object { Write-Host $_ }
       if ($result.Code -ne 0) { throw "Solution failed for $qid on $target" }
-    } elseif ($questionMachines.Count -eq 1 -and ((Test-Path $defaultScript) -or (Test-Path $legacyDefaultScript))) {
-      $solutionDir = if (Test-Path $defaultScript) { "solution" } else { "solutions" }
-      $result = Invoke-DirectSsh $target "sudo bash /vagrant/$solutionDir/$qid.sh"
+    } elseif ($questionMachines.Count -eq 1 -and (Test-Path $defaultScript)) {
+      $result = Invoke-DirectSsh $target "sudo bash /vagrant/solution/$qid.sh"
       $result.Output | ForEach-Object { Write-Host $_ }
       if ($result.Code -ne 0) { throw "Solution failed for $qid on $target" }
     }

@@ -101,6 +101,60 @@ function Wait-Ssh($machine) {
   throw "SSH not ready for $machine"
 }
 
+function Wait-PeerSsh($machines) {
+  if (@($machines).Count -lt 2) { return }
+  $checks = @(
+    @{ machine="node1"; peer="192.168.56.12" },
+    @{ machine="node2"; peer="192.168.56.11" }
+  )
+  foreach ($check in $checks) {
+    if ($machines -notcontains $check.machine) { continue }
+    $deadline = (Get-Date).AddSeconds(60)
+    while ((Get-Date) -lt $deadline) {
+      $r = Invoke-Ssh $check.machine "timeout 2 bash -c '</dev/tcp/$($check.peer)/22'"
+      if ($r.Code -eq 0) { break }
+      Start-Sleep -Seconds 2
+    }
+    if ((Get-Date) -ge $deadline) { throw "peer SSH not ready from $($check.machine) to $($check.peer)" }
+  }
+}
+
+function Get-ServiceReadinessCommands($q) {
+  $qidNum = [int]$q.id.Substring(1)
+  switch ($q.topic) {
+    "NFS" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/2049'") }
+    "NBD" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/10809'") }
+    "reverse proxy & load balancer" {
+      $n = $qidNum - 214
+      $backend = 18700 + $n
+      $listen = 18800 + $n
+      return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/$backend'", "timeout 2 bash -c '</dev/tcp/127.0.0.1/$listen'")
+    }
+    "port redirection & NAT" {
+      $n = $qidNum - 208
+      $port = 18600 + $n
+      return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/$port'")
+    }
+    "NTP time sync" { return @("chronyc sources -n | grep -q '192.168.56.12'") }
+    "SSH server & client" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/22'") }
+    "LDAP accounts" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/389'") }
+    default { return @() }
+  }
+}
+
+function Wait-ServiceReadiness($q, $primary) {
+  $commands = @(Get-ServiceReadinessCommands $q)
+  foreach ($command in $commands) {
+    $deadline = (Get-Date).AddSeconds(60)
+    while ((Get-Date) -lt $deadline) {
+      $r = Invoke-Ssh $primary $command
+      if ($r.Code -eq 0) { break }
+      Start-Sleep -Seconds 2
+    }
+    if ((Get-Date) -ge $deadline) { throw "readiness wait failed on ${primary}: $command" }
+  }
+}
+
 function Invoke-VagrantUpNoProvision($machine) {
   Push-Location $LabRoot
   try {
@@ -203,6 +257,7 @@ foreach ($qid in $ExpandedQuestionIds) {
   $row = [ordered]@{ id=$qid; topic=$q.topic; distro=$q.distro; vms=($machines -join ","); load="FAIL"; unsolved="FAIL"; solved="FAIL"; restored="FAIL"; unsolved_last=""; solved_last="" }
   try {
     foreach ($machine in $machines) { Restore-Base $machine }
+    Wait-PeerSsh $machines
     foreach ($machine in $machines) {
       $machineInject = Join-Path $LabRoot "inject\$qid.$machine.sh"
       $defaultInject = Join-Path $LabRoot "inject\$qid.sh"
@@ -229,17 +284,16 @@ foreach ($qid in $ExpandedQuestionIds) {
     foreach ($machine in $solutionMachines) {
       $machineSolution = Join-Path $LabRoot "solution\$qid.$machine.sh"
       $defaultSolution = Join-Path $LabRoot "solution\$qid.sh"
-      $legacyDefaultSolution = Join-Path $LabRoot "solutions\$qid.sh"
       if (Test-Path $machineSolution) {
         $solvedApply = Invoke-Ssh $machine "sudo bash /vagrant/solution/$qid.$machine.sh"
         if ($solvedApply.Code -ne 0) { throw "solution failed on ${machine}: $($solvedApply.Output -join ' ')" }
-      } elseif ($machines.Count -eq 1 -and ((Test-Path $defaultSolution) -or (Test-Path $legacyDefaultSolution))) {
-        $solutionDir = if (Test-Path $defaultSolution) { "solution" } else { "solutions" }
-        $solvedApply = Invoke-Ssh $machine "sudo bash /vagrant/$solutionDir/$qid.sh"
+      } elseif ($machines.Count -eq 1 -and (Test-Path $defaultSolution)) {
+        $solvedApply = Invoke-Ssh $machine "sudo bash /vagrant/solution/$qid.sh"
         if ($solvedApply.Code -ne 0) { throw "solution failed on ${machine}: $($solvedApply.Output -join ' ')" }
       }
     }
 
+    if ($machines.Count -gt 1) { Wait-ServiceReadiness $q $primary }
     $solved = Invoke-Ssh $primary "sudo bash /vagrant/validate/$qid.sh"
     $row.solved_last = (($solved.Output | Select-Object -Last 1) -join "")
     if ($solved.Code -eq 0 -and $row.solved_last -eq "RESULT: PASS") {

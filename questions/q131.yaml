@@ -1,0 +1,10 @@
+id: q131
+title: "Add static route 198.51.4.0/24"
+domain: "Networking"
+topic: "routing"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Add an active static route for 198.51.4.0/24 via the loopback device with metric 4.
+hints: ["Use ip route add.", "Validation checks the live route table."]

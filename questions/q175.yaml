@@ -1,0 +1,10 @@
+id: q175
+title: "Create local user lfcsuser1"
+domain: "Users and Groups"
+topic: "local user accounts"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create user lfcsuser1 with UID 2401, shell /bin/bash, and account expiry 2030-12-31.
+hints: ["Use useradd options.", "Validate with getent and chage."]

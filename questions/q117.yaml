@@ -1,0 +1,10 @@
+id: q117
+title: "Create bridge brlfcs1"
+domain: "Networking"
+topic: "bridge & bonding"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create Linux bridge brlfcs1, attach dummy interfaces brd1a and brd1b, and bring all three links up.
+hints: ["Use ip link add type bridge and type dummy.", "ip -d link shows bridge membership."]

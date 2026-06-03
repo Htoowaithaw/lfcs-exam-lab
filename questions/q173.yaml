@@ -1,0 +1,10 @@
+id: q173
+title: "Create RAID1 array lfcsraid2"
+domain: "Storage"
+topic: "RAID/mdadm"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create RAID1 array /dev/md/lfcsraid2 using scratch disks /dev/sdh and /dev/sdi. Format it ext4.
+hints: ["Use mdadm --create.", "Validation checks mdadm --detail."]

@@ -1,0 +1,10 @@
+id: q126
+title: "Create nftables rule for port 18305"
+domain: "Networking"
+topic: "firewall - ufw/nftables"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create nftables table inet lfcs5 with an input chain that accepts tcp dport 18305.
+hints: ["Use nft add table/chain/rule.", "Validation reads the active ruleset."]

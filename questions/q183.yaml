@@ -1,0 +1,10 @@
+id: q183
+title: "Set system-wide profile variable LFCS_PROFILE_2"
+domain: "Users and Groups"
+topic: "system-wide profiles"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /etc/profile.d/lfcs-profile2.sh so login shells receive LFCS_PROFILE_2=enabled2.
+hints: ["Use /etc/profile.d.", "Validate through a login shell."]

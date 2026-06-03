@@ -1,0 +1,10 @@
+id: q106
+title: "Configure local address and host entry lfcsnet2"
+domain: "Networking"
+topic: "IPv4/IPv6 + hostname resolution"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create a dummy interface named lfcsnet2, bring it up, assign IPv4 10.55.2.10/24 and IPv6 fd00:55:2::10/64, and add /etc/hosts entry mapping 10.55.2.10 to phase5d-net2.local.
+hints: ["Use ip link add type dummy.", "Validate both ip addr and getent hosts."]

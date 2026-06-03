@@ -1,0 +1,10 @@
+id: q190
+title: "Set nofile limit for limituser3"
+domain: "Users and Groups"
+topic: "ulimit resource limits"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create user limituser3 and set both soft and hard nofile limit to 2051 using /etc/security/limits.d/lfcs-limit3.conf.
+hints: ["Use limits.d.", "Validate with su - user -c 'ulimit -n'."]

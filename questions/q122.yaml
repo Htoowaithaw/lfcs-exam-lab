@@ -1,0 +1,10 @@
+id: q122
+title: "Open UFW port 18201"
+domain: "Networking"
+topic: "firewall - ufw/nftables"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Enable UFW with default allow policy and allow inbound TCP port 18201.
+hints: ["Use ufw --force enable.", "Do not lock yourself out; keep default allow for this lab."]

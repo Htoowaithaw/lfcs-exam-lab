@@ -1,0 +1,10 @@
+id: q125
+title: "Create nftables rule for port 18304"
+domain: "Networking"
+topic: "firewall - ufw/nftables"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create nftables table inet lfcs4 with an input chain that accepts tcp dport 18304.
+hints: ["Use nft add table/chain/rule.", "Validation reads the active ruleset."]

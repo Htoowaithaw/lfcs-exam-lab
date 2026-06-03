@@ -1,0 +1,10 @@
+id: q143
+title: "Create active swap on /dev/sdc1"
+domain: "Storage"
+topic: "swap"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create partition /dev/sdc1 on scratch disk /dev/sdc, format it as swap, enable it, and add a persistent fstab entry by UUID.
+hints: ["Use mkswap and swapon.", "Do not use the OS disk."]

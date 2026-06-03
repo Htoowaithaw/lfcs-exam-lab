@@ -1,0 +1,10 @@
+id: q192
+title: "Grant limited sudo to sudoer2"
+domain: "Users and Groups"
+topic: "sudo privileges"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create user sudoer2 and allow passwordless sudo for only /usr/bin/journalctl through /etc/sudoers.d/lfcs-sudo2.
+hints: ["Use visudo -cf to validate sudoers syntax.", "Validate with sudo -l -U."]

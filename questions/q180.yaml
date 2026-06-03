@@ -1,0 +1,10 @@
+id: q180
+title: "Configure group membership lfcsteam2"
+domain: "Users and Groups"
+topic: "groups & memberships"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create group lfcsteam2, create user grpuser2, and make lfcsteam2 the user's supplementary group.
+hints: ["Use groupadd and usermod -aG.", "Validate with id."]

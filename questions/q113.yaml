@@ -1,0 +1,10 @@
+id: q113
+title: "Start a checked listener on port 18102"
+domain: "Networking"
+topic: "ss/netstat service checks"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Start a local TCP listener bound to 127.0.0.1:18102, keep it running, and write its PID to /run/lfcs-ss2.pid.
+hints: ["A tiny Python socket server is enough.", "Validate with ss -ltn."]

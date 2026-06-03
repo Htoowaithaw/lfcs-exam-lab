@@ -72,14 +72,19 @@ function Ensure-DataFiles {
 
 function Read-Question($path) {
   $lines = Get-Content -LiteralPath $path
-  $q = [ordered]@{ id=""; title=""; domain=""; difficulty=""; distro="ubuntu"; question=""; hints=@(); path=$path }
+  $q = [ordered]@{ id=""; title=""; domain=""; topic=""; difficulty=""; distro="ubuntu"; vms=@(); question=""; hints=@(); path=$path }
   for ($i = 0; $i -lt $lines.Count; $i++) {
     $line = $lines[$i]
     if ($line -match '^id:\s*(.+)$') { $q.id = $Matches[1].Trim('" ') }
     elseif ($line -match '^title:\s*(.+)$') { $q.title = $Matches[1].Trim('" ') }
     elseif ($line -match '^domain:\s*(.+)$') { $q.domain = $Matches[1].Trim('" ') }
+    elseif ($line -match '^topic:\s*(.+)$') { $q.topic = $Matches[1].Trim('" ') }
     elseif ($line -match '^difficulty:\s*(.+)$') { $q.difficulty = $Matches[1].Trim('" ') }
     elseif ($line -match '^distro:\s*(.+)$') { $q.distro = $Matches[1].Trim('" ') }
+    elseif ($line -match '^vms:\s*\[(.*)\]\s*$') {
+      $items = $Matches[1]
+      $q.vms = @($items -split ',' | ForEach-Object { $_.Trim().Trim('" ') } | Where-Object { $_ })
+    }
     elseif ($line -match '^question:\s*\|') {
       $buf = New-Object System.Collections.Generic.List[string]
       $i++
@@ -129,6 +134,8 @@ function Invoke-Vagrant {
 }
 
 function Get-TargetMachine($question) {
+  $machines = @(Get-QuestionMachines $question)
+  if ($machines.Count -gt 0) { return $machines[0] }
   $distro = $question.distro
   if ([string]::IsNullOrWhiteSpace($distro)) { $distro = "ubuntu" }
   switch ($distro.ToLowerInvariant()) {
@@ -138,9 +145,20 @@ function Get-TargetMachine($question) {
   }
 }
 
+function Get-QuestionMachines($question) {
+  if ($question.PSObject.Properties.Name -contains "vms" -and $question.vms -and @($question.vms).Count -gt 0) {
+    return @($question.vms | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+  }
+  $distro = $question.distro
+  if ([string]::IsNullOrWhiteSpace($distro)) { $distro = "ubuntu" }
+  if ($distro.ToLowerInvariant() -eq "rocky") { return @("lfcs-rocky1") }
+  return @("node1")
+}
+
 function Get-VBoxName($machine) {
   switch ($machine) {
     "node1" { return "lfcs-node1" }
+    "node2" { return "lfcs-node2" }
     "lfcs-rocky1" { return "lfcs-rocky1" }
     default { throw "No VirtualBox VM mapping for $machine" }
   }
@@ -180,7 +198,7 @@ function Get-SshInfoFromVagrant($machine) {
 
 function Refresh-SshCache {
   $cache = @{}
-  foreach ($machine in @("node1", "lfcs-rocky1")) {
+  foreach ($machine in @("node1", "node2", "lfcs-rocky1")) {
     $cache[$machine] = Get-SshInfoFromVagrant $machine
   }
   Save-SshCache $cache
@@ -189,7 +207,7 @@ function Refresh-SshCache {
 
 function Get-SshInfo($machine) {
   $cache = Read-SshCache
-  if (!$cache.ContainsKey("node1") -or !$cache.ContainsKey("lfcs-rocky1")) {
+  if (!$cache.ContainsKey("node1") -or !$cache.ContainsKey("node2") -or !$cache.ContainsKey("lfcs-rocky1")) {
     $cache = Refresh-SshCache
   }
   if ($cache.ContainsKey($machine)) {
@@ -219,6 +237,28 @@ function Invoke-InteractiveSsh($machine) {
   & ssh @sshArgs
   if ($LASTEXITCODE -ne 0) { Write-Host "SSH exited with code $LASTEXITCODE" }
   Write-Host "Task shown above and saved to /root/TASK.md"
+}
+
+function Select-SshMachine($question) {
+  $machines = @(Get-QuestionMachines $question)
+  if ($machines.Count -le 1) { return $machines[0] }
+  Write-Host "Select VM:"
+  for ($i = 0; $i -lt $machines.Count; $i++) {
+    Write-Host ("{0}. {1}" -f ($i + 1), $machines[$i])
+  }
+  $choice = Read-Host "VM"
+  if (!($choice -as [int]) -or [int]$choice -lt 1 -or [int]$choice -gt $machines.Count) {
+    Write-Host "Invalid VM selection; using $($machines[0])"
+    return $machines[0]
+  }
+  return $machines[[int]$choice - 1]
+}
+
+function Get-SolutionMachines($question) {
+  $machines = @(Get-QuestionMachines $question)
+  if ($machines.Count -le 1) { return $machines }
+  if ($question.topic -eq "SSH server & client") { return $machines }
+  return @($machines[($machines.Count - 1)..0])
 }
 
 function Invoke-DirectSsh($machine, $command) {
@@ -321,14 +361,29 @@ function Install-TaskText($question, $target) {
 
 function Load-Question($question) {
   $qid = $question.id
-  $target = Get-TargetMachine $question
-  Write-Host "Restoring $target base snapshot..."
-  Restore-BaseSnapshot $target
-  Write-Host "Injecting $qid..."
-  $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.sh"
-  $result.Output | ForEach-Object { Write-Host $_ }
-  if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
-  Install-TaskText $question $target
+  $machines = @(Get-QuestionMachines $question)
+  foreach ($target in $machines) {
+    Write-Host "Restoring $target base snapshot..."
+    Restore-BaseSnapshot $target
+  }
+  foreach ($target in $machines) {
+    $machineScript = Join-Path $LabRoot "inject/$qid.$target.sh"
+    $defaultScript = Join-Path $LabRoot "inject/$qid.sh"
+    if (Test-Path $machineScript) {
+      Write-Host "Injecting $qid on $target..."
+      $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.$target.sh"
+      $result.Output | ForEach-Object { Write-Host $_ }
+      if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
+    } elseif ($machines.Count -eq 1 -and (Test-Path $defaultScript)) {
+      Write-Host "Injecting $qid..."
+      $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.sh"
+      $result.Output | ForEach-Object { Write-Host $_ }
+      if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
+    }
+  }
+  foreach ($target in $machines) {
+    Install-TaskText $question $target
+  }
   Update-Progress $qid "attempted" $false
 }
 
@@ -344,11 +399,20 @@ function Validate-Question($question) {
 
 function Invoke-Solution($question) {
   $qid = $question.id
-  $target = Get-TargetMachine $question
-  $solutionPath = if (Test-Path (Join-Path $LabRoot "solution/$qid.sh")) { "solution" } else { "solutions" }
-  $result = Invoke-DirectSsh $target "sudo bash /vagrant/$solutionPath/$qid.sh"
-  $result.Output | ForEach-Object { Write-Host $_ }
-  if ($result.Code -ne 0) { throw "Solution failed for $qid on $target" }
+  $machines = @(Get-SolutionMachines $question)
+  foreach ($target in $machines) {
+    $machineScript = Join-Path $LabRoot "solution/$qid.$target.sh"
+    $defaultScript = Join-Path $LabRoot "solution/$qid.sh"
+    if (Test-Path $machineScript) {
+      $result = Invoke-DirectSsh $target "sudo bash /vagrant/solution/$qid.$target.sh"
+      $result.Output | ForEach-Object { Write-Host $_ }
+      if ($result.Code -ne 0) { throw "Solution failed for $qid on $target" }
+    } elseif ($machines.Count -eq 1 -and (Test-Path $defaultScript)) {
+      $result = Invoke-DirectSsh $target "sudo bash /vagrant/solution/$qid.sh"
+      $result.Output | ForEach-Object { Write-Host $_ }
+      if ($result.Code -ne 0) { throw "Solution failed for $qid on $target" }
+    }
+  }
 }
 
 function Get-RemainingText($endTs) {
@@ -407,7 +471,7 @@ function Start-PracticeMode {
     while ($true) {
       Clear-Host
       Write-Host "$($current.id): $($current.title)"
-      Write-Host "Domain: $($current.domain) | Difficulty: $($current.difficulty) | Target: $(Get-TargetMachine $current)"
+      Write-Host "Domain: $($current.domain) | Difficulty: $($current.difficulty) | Targets: $((Get-QuestionMachines $current) -join ',')"
       Write-Host ""
       Write-Host $current.question
       if ($showHints) {
@@ -419,7 +483,7 @@ function Start-PracticeMode {
       Write-Host "[v] validate  [s] ssh  [t] task  [r] reload/reset  [h] toggle hints  [q] question menu"
       $action = Read-Host "Action"
       if ($action -eq "v") { [void](Validate-Question $current); Read-Host "Press Enter" }
-      elseif ($action -eq "s") { Invoke-InteractiveSsh (Get-TargetMachine $current) }
+      elseif ($action -eq "s") { Invoke-InteractiveSsh (Select-SshMachine $current) }
       elseif ($action -eq "t") { Show-TaskText $current; Read-Host "Press Enter" }
       elseif ($action -eq "r") { Load-Question $current }
       elseif ($action -eq "h") { $showHints = !$showHints }
@@ -558,7 +622,7 @@ function Start-ExamMode {
         $rc = Validate-Question $current
         $session.per_question[$idx].result = if ($rc -eq 0) { "PASS" } else { "FAIL" }
       }
-      elseif ($action -eq "s") { Invoke-InteractiveSsh (Get-TargetMachine $current) }
+      elseif ($action -eq "s") { Invoke-InteractiveSsh (Select-SshMachine $current) }
       elseif ($action -eq "t") { Show-TaskText $current; Read-Host "Press Enter" }
       elseif ($action -eq "b") { break }
     }

@@ -5,6 +5,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "node1", primary: true do |node|
     node.vm.hostname = "lfcs-node1"
+    node.vm.network "private_network", ip: "192.168.56.11"
     node.vm.provider "virtualbox" do |vb|
       vb.name = "lfcs-node1"
       vb.memory = 4096
@@ -25,6 +26,18 @@ Vagrant.configure("2") do |config|
           "--medium", disk
         ]
       end
+    end
+    node.vm.provision "shell", path: "provision.sh"
+  end
+
+  config.vm.define "node2" do |node|
+    node.vm.box = "bento/ubuntu-22.04"
+    node.vm.hostname = "lfcs-node2"
+    node.vm.network "private_network", ip: "192.168.56.12"
+    node.vm.provider "virtualbox" do |vb|
+      vb.name = "lfcs-node2"
+      vb.memory = 3072
+      vb.cpus = 2
     end
     node.vm.provision "shell", path: "provision.sh"
   end

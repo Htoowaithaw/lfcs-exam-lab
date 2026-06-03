@@ -23,3 +23,5 @@ phase5e-*.err
 phase6-*.json
 phase6-*.log
 phase6-*.err
+phase6-*.txt
+.tmp-q*.pub

@@ -1,0 +1,10 @@
+id: q233
+title: "Resolve LDAP account ldapuser4"
+domain: "Users and Groups"
+topic: "LDAP accounts"
+difficulty: hard
+distro: ubuntu
+vms: [node1,node2]
+question: |
+  Configure node2 LDAP directory dc=lfcs,dc=lab with POSIX user ldapuser4 UID 3104. Configure node1 NSS over LDAP so getent passwd ldapuser4 returns that LDAP account.
+hints: ["Node2 is the LDAP server.", "Node1 is the LDAP client."]

@@ -399,16 +399,19 @@ function Validate-Question($question) {
 
 function Invoke-Solution($question) {
   $qid = $question.id
-  $machines = @(Get-SolutionMachines $question)
-  foreach ($target in $machines) {
+  $questionMachines = @(Get-QuestionMachines $question)
+  $solutionMachines = if ($questionMachines.Count -le 1) { $questionMachines } else { @(Get-SolutionMachines $question) }
+  foreach ($target in $solutionMachines) {
     $machineScript = Join-Path $LabRoot "solution/$qid.$target.sh"
     $defaultScript = Join-Path $LabRoot "solution/$qid.sh"
+    $legacyDefaultScript = Join-Path $LabRoot "solutions/$qid.sh"
     if (Test-Path $machineScript) {
       $result = Invoke-DirectSsh $target "sudo bash /vagrant/solution/$qid.$target.sh"
       $result.Output | ForEach-Object { Write-Host $_ }
       if ($result.Code -ne 0) { throw "Solution failed for $qid on $target" }
-    } elseif ($machines.Count -eq 1 -and (Test-Path $defaultScript)) {
-      $result = Invoke-DirectSsh $target "sudo bash /vagrant/solution/$qid.sh"
+    } elseif ($questionMachines.Count -eq 1 -and ((Test-Path $defaultScript) -or (Test-Path $legacyDefaultScript))) {
+      $solutionDir = if (Test-Path $defaultScript) { "solution" } else { "solutions" }
+      $result = Invoke-DirectSsh $target "sudo bash /vagrant/$solutionDir/$qid.sh"
       $result.Output | ForEach-Object { Write-Host $_ }
       if ($result.Code -ne 0) { throw "Solution failed for $qid on $target" }
     }

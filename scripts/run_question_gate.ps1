@@ -225,14 +225,17 @@ foreach ($qid in $ExpandedQuestionIds) {
       throw "unsolved validate did not fail correctly: code=$($unsolved.Code) last=$($row.unsolved_last)"
     }
 
-    foreach ($machine in @(Get-SolutionMachines $q)) {
+    $solutionMachines = if ($machines.Count -le 1) { $machines } else { @(Get-SolutionMachines $q) }
+    foreach ($machine in $solutionMachines) {
       $machineSolution = Join-Path $LabRoot "solution\$qid.$machine.sh"
       $defaultSolution = Join-Path $LabRoot "solution\$qid.sh"
+      $legacyDefaultSolution = Join-Path $LabRoot "solutions\$qid.sh"
       if (Test-Path $machineSolution) {
         $solvedApply = Invoke-Ssh $machine "sudo bash /vagrant/solution/$qid.$machine.sh"
         if ($solvedApply.Code -ne 0) { throw "solution failed on ${machine}: $($solvedApply.Output -join ' ')" }
-      } elseif ($machines.Count -eq 1 -and (Test-Path $defaultSolution)) {
-        $solvedApply = Invoke-Ssh $machine "sudo bash /vagrant/solution/$qid.sh"
+      } elseif ($machines.Count -eq 1 -and ((Test-Path $defaultSolution) -or (Test-Path $legacyDefaultSolution))) {
+        $solutionDir = if (Test-Path $defaultSolution) { "solution" } else { "solutions" }
+        $solvedApply = Invoke-Ssh $machine "sudo bash /vagrant/$solutionDir/$qid.sh"
         if ($solvedApply.Code -ne 0) { throw "solution failed on ${machine}: $($solvedApply.Output -join ' ')" }
       }
     }

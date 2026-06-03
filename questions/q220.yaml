@@ -1,0 +1,10 @@
+id: q220
+title: "Sync chrony from node2 1"
+domain: "Networking"
+topic: "NTP time sync"
+difficulty: hard
+distro: ubuntu
+vms: [node1,node2]
+question: |
+  Configure node2 as a chrony NTP server for node1 on the host-only network. Configure node1 to use only 192.168.56.12 as its chrony source.
+hints: ["Use chrony allow on node2.", "Use server 192.168.56.12 iburst on node1."]

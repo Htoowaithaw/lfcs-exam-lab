@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if ! findmnt -no OPTIONS /mnt/lfcs-opt3 | grep -qw 'noexec'; then echo "RESULT: FAIL - mount option is not active"; exit 1; fi
-if ! grep -q 'noexec' /etc/fstab; then echo "RESULT: FAIL - mount option is not persistent"; exit 1; fi
-if ! mount -a; then echo "RESULT: FAIL - mount -a failed"; exit 1; fi
+fail(){ echo "RESULT: FAIL - $1"; exit 1; }
+[ "$(findmnt -rn -o TARGET /mnt/lfcs-opt3 2>/dev/null)" = '/mnt/lfcs-opt3' ] || fail 'mountpoint is not mounted'
+[ "$(findmnt -rn -o SOURCE /mnt/lfcs-opt3 2>/dev/null)" = '/dev/sdf1' ] || fail 'wrong source device mounted'
+[ "$(findmnt -rn -o FSTYPE /mnt/lfcs-opt3 2>/dev/null)" = 'ext4' ] || fail 'mounted filesystem is not ext4'
+findmnt -no OPTIONS /mnt/lfcs-opt3 | tr ',' '\n' | grep -qx 'noexec' || fail 'mount option is not active'
+awk '$2 == "/mnt/lfcs-opt3" && $3 == "ext4" && $4 ~ /(^|,)noexec(,|$)/ { found=1 } END { exit !found }' /etc/fstab || fail 'mount option is not persistent for requested mountpoint'
+mount -a || fail 'mount -a failed'
 echo "RESULT: PASS"

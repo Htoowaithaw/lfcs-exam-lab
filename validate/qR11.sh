@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if ! ls -Zd /var/www/lfcs-r11-site | grep -q 'httpd_sys_content_t'; then echo "RESULT: FAIL - check 1 failed: ls -Zd /var/www/lfcs-r11-site | grep -q 'httpd_sys_content_t'"; exit 1; fi
-if ! ls -Z /var/www/lfcs-r11-site/index.html | grep -q 'httpd_sys_content_t'; then echo "RESULT: FAIL - check 2 failed: ls -Z /var/www/lfcs-r11-site/index.html | grep -q 'httpd_sys_content_t'"; exit 1; fi
+fail(){ echo "RESULT: FAIL - $1"; exit 1; }
+[ -d /var/www/lfcs-r11-site ] || fail 'site directory missing'
+[ -f /var/www/lfcs-r11-site/index.html ] || fail 'index file missing'
+[ "$(stat -c '%C' /var/www/lfcs-r11-site | awk -F: '{print $3}')" = 'httpd_sys_content_t' ] || fail 'directory context is not httpd_sys_content_t'
+[ "$(stat -c '%C' /var/www/lfcs-r11-site/index.html | awk -F: '{print $3}')" = 'httpd_sys_content_t' ] || fail 'file context is not httpd_sys_content_t'
+semanage fcontext -l | awk '$1 == "/var/www/lfcs-r11-site(/.*)?" && $NF ~ /:httpd_sys_content_t:/ { found=1 } END { exit !found }' || fail 'persistent fcontext rule missing for site files'
 echo "RESULT: PASS"

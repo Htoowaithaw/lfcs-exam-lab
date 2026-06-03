@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if ! grep -q '/dev/sdc1' /proc/swaps; then echo "RESULT: FAIL - swap is not active"; exit 1; fi
-if ! blkid -o value -s TYPE /dev/sdc1 | grep -q '^swap$'; then echo "RESULT: FAIL - partition is not swap"; exit 1; fi
-if ! grep -q 'lfcs-swap-1' /etc/fstab; then echo "RESULT: FAIL - persistent fstab marker missing"; exit 1; fi
+fail(){ echo "RESULT: FAIL - $1"; exit 1; }
+grep -qw '/dev/sdc1' /proc/swaps || fail 'swap is not active on /dev/sdc1'
+[ "$(blkid -o value -s TYPE /dev/sdc1 2>/dev/null)" = 'swap' ] || fail 'partition is not swap'
+awk '$1 ~ /^UUID=/ && ($2 == "none" || $2 == "swap") && $3 == "swap" { found=1 } END { exit !found }' /etc/fstab || fail 'UUID swap fstab entry missing'
 echo "RESULT: PASS"

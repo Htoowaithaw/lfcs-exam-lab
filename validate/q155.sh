@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if ! findmnt -rn /mnt/lfcs-fstab5 | grep -q '/mnt/lfcs-fstab5'; then echo "RESULT: FAIL - mountpoint is not mounted"; exit 1; fi
-if ! grep -q 'UUID=.*/mnt/lfcs-fstab5.*lfcs-fstab-5' /etc/fstab; then echo "RESULT: FAIL - UUID fstab entry missing"; exit 1; fi
-if ! mount -a; then echo "RESULT: FAIL - mount -a failed"; exit 1; fi
+fail(){ echo "RESULT: FAIL - $1"; exit 1; }
+[ "$(findmnt -rn -o TARGET /mnt/lfcs-fstab5 2>/dev/null)" = '/mnt/lfcs-fstab5' ] || fail 'mountpoint is not mounted'
+[ "$(findmnt -rn -o FSTYPE /mnt/lfcs-fstab5 2>/dev/null)" = 'ext4' ] || fail 'mounted filesystem is not ext4'
+src="$(findmnt -rn -o SOURCE /mnt/lfcs-fstab5)"
+[ "$(blkid -o value -s LABEL "$src" 2>/dev/null)" = 'fstab5' ] || fail 'filesystem label is wrong'
+awk '$1 ~ /^UUID=/ && $2 == "/mnt/lfcs-fstab5" && $3 == "ext4" { found=1 } END { exit !found }' /etc/fstab || fail 'UUID ext4 fstab entry missing'
+mount -a || fail 'mount -a failed'
 echo "RESULT: PASS"

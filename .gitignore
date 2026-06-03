@@ -17,3 +17,6 @@ phase5-rocky-boolean-rerun.json
 phase5d-*.json
 phase5d-*.log
 phase5d-*.err
+phase5e-*.json
+phase5e-*.log
+phase5e-*.err

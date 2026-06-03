@@ -1,0 +1,10 @@
+id: q170
+title: "Capture storage performance facts 3"
+domain: "Storage"
+topic: "storage perf monitoring"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Write a storage facts report to /root/lfcs-storage-perf3.txt containing lsblk output, df output, and blockdev read-ahead for /dev/sdb.
+hints: ["This is an artifact question.", "Use lsblk, df, and blockdev."]

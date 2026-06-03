@@ -1,0 +1,10 @@
+id: q189
+title: "Set nofile limit for limituser2"
+domain: "Users and Groups"
+topic: "ulimit resource limits"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create user limituser2 and set both soft and hard nofile limit to 2050 using /etc/security/limits.d/lfcs-limit2.conf.
+hints: ["Use limits.d.", "Validate with su - user -c 'ulimit -n'."]

@@ -1,0 +1,10 @@
+id: q150
+title: "Create ext4 filesystem lfcsfs5"
+domain: "Storage"
+topic: "create/configure filesystems"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create partition /dev/sdd1 on scratch disk /dev/sdd, format it ext4 with label lfcsfs5, and do not mount it.
+hints: ["Use mkfs.ext4 -L.", "Validate with blkid."]

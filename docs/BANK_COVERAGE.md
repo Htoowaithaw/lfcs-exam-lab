@@ -37,31 +37,31 @@ Generated from `docs/QUESTION_SOURCE.md` and `questions/*.yaml`.
 | Operations & Deployment | cloud-image VMs | 3 | 3 | 0 | ubuntu | no |
 | Operations & Deployment | SSL/TLS openssl | 3 | 3 | 0 | ubuntu | no |
 | Operations & Deployment | local security | 2 | 2 | 0 | ubuntu | no |
-| Networking | IPv4/IPv6 + hostname resolution | 8 | 1 | 7 | ubuntu | no |
-| Networking | ss/netstat service checks | 5 | 0 | 5 | ubuntu | no |
-| Networking | bridge & bonding | 5 | 0 | 5 | ubuntu | no |
-| Networking | firewall - ufw/nftables | 6 | 0 | 6 | ubuntu | no |
-| Networking | firewall - firewalld | 5 | 1 | 4 | rocky | no |
+| Networking | IPv4/IPv6 + hostname resolution | 8 | 8 | 0 | ubuntu | no |
+| Networking | ss/netstat service checks | 5 | 5 | 0 | ubuntu | no |
+| Networking | bridge & bonding | 5 | 5 | 0 | ubuntu | no |
+| Networking | firewall - ufw/nftables | 6 | 6 | 0 | ubuntu | no |
+| Networking | firewall - firewalld | 5 | 5 | 0 | rocky | no |
 | Networking | port redirection & NAT | 6 | 0 | 6 | ubuntu | yes |
 | Networking | reverse proxy & load balancer | 5 | 0 | 5 | ubuntu | yes |
 | Networking | NTP time sync | 5 | 0 | 5 | ubuntu | yes |
-| Networking | SSH server & client | 10 | 0 | 10 | ubuntu | half |
-| Networking | routing | 5 | 1 | 4 | ubuntu | no |
-| Storage | partitioning | 6 | 0 | 6 | ubuntu | no |
-| Storage | swap | 4 | 1 | 3 | ubuntu | no |
-| Storage | create/configure filesystems | 6 | 1 | 5 | ubuntu | no |
-| Storage | fstab boot mounts | 5 | 0 | 5 | ubuntu | no |
-| Storage | mount options | 4 | 0 | 4 | ubuntu | no |
+| Networking | SSH server & client | 10 | 5 | 5 | ubuntu | half |
+| Networking | routing | 5 | 5 | 0 | ubuntu | no |
+| Storage | partitioning | 6 | 6 | 0 | ubuntu | no |
+| Storage | swap | 4 | 4 | 0 | ubuntu | no |
+| Storage | create/configure filesystems | 6 | 6 | 0 | ubuntu | no |
+| Storage | fstab boot mounts | 5 | 5 | 0 | ubuntu | no |
+| Storage | mount options | 4 | 4 | 0 | ubuntu | no |
 | Storage | NFS | 6 | 0 | 6 | ubuntu | yes |
 | Storage | NBD | 4 | 0 | 4 | ubuntu | yes |
-| Storage | LVM | 8 | 0 | 8 | ubuntu | no |
-| Storage | storage perf monitoring | 4 | 0 | 4 | ubuntu | no |
-| Storage | RAID/mdadm | 3 | 0 | 3 | ubuntu | no |
-| Users and Groups | local user accounts | 5 | 1 | 4 | ubuntu | no |
-| Users and Groups | groups & memberships | 4 | 1 | 3 | ubuntu | no |
-| Users and Groups | system-wide profiles | 3 | 0 | 3 | ubuntu | no |
-| Users and Groups | skel template env | 3 | 0 | 3 | ubuntu | no |
-| Users and Groups | ulimit resource limits | 3 | 0 | 3 | ubuntu | no |
-| Users and Groups | sudo privileges | 5 | 0 | 5 | ubuntu | no |
-| Users and Groups | root account access | 3 | 0 | 3 | ubuntu | no |
+| Storage | LVM | 8 | 8 | 0 | ubuntu | no |
+| Storage | storage perf monitoring | 4 | 4 | 0 | ubuntu | no |
+| Storage | RAID/mdadm | 3 | 3 | 0 | ubuntu | no |
+| Users and Groups | local user accounts | 5 | 5 | 0 | ubuntu | no |
+| Users and Groups | groups & memberships | 4 | 4 | 0 | ubuntu | no |
+| Users and Groups | system-wide profiles | 3 | 3 | 0 | ubuntu | no |
+| Users and Groups | skel template env | 3 | 3 | 0 | ubuntu | no |
+| Users and Groups | ulimit resource limits | 3 | 3 | 0 | ubuntu | no |
+| Users and Groups | sudo privileges | 5 | 5 | 0 | ubuntu | no |
+| Users and Groups | root account access | 3 | 3 | 0 | ubuntu | no |
 | Users and Groups | LDAP accounts | 4 | 0 | 4 | ubuntu | yes |

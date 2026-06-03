@@ -1,0 +1,10 @@
+id: q156
+title: "Mount filesystem with noexec"
+domain: "Storage"
+topic: "mount options"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create and mount ext4 filesystem /dev/sdf1 at /mnt/lfcs-opt1 with the noexec option active and persistent.
+hints: ["Use fstab options.", "findmnt should show the option."]

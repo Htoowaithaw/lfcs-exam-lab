@@ -1,0 +1,10 @@
+id: q121
+title: "Create active-backup bond bondlfcs5"
+domain: "Networking"
+topic: "bridge & bonding"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create bond bondlfcs5 in active-backup mode with dummy slaves bnd5a and bnd5b, then bring it up.
+hints: ["Load the bonding module if needed.", "Validate through /proc/net/bonding."]

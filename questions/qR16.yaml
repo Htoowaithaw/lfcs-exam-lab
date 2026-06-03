@@ -1,0 +1,10 @@
+id: qR16
+title: "Open permanent firewalld port 18404"
+domain: "Networking"
+topic: "firewall - firewalld"
+difficulty: medium
+distro: rocky
+vms: [lfcs-rocky1]
+question: |
+  Open TCP port 18404 permanently in the public firewalld zone and reload firewalld.
+hints: ["Use firewall-cmd --permanent.", "Validation checks the active zone after reload."]

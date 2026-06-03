@@ -1,0 +1,10 @@
+id: q132
+title: "Harden local SSH setting q132"
+domain: "Networking"
+topic: "SSH server & client"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create user sshuser1, install an authorized key, and enforce key-only SSH by setting PasswordAuthentication no and PubkeyAuthentication yes in /etc/ssh/sshd_config.d/q132.conf. Restart sshd.
+hints: ["Use ssh-keygen for a local keypair.", "Validate effective sshd config with sshd -T."]

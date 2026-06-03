@@ -1,0 +1,10 @@
+id: q137
+title: "Create scratch partition 80M"
+domain: "Storage"
+topic: "partitioning"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  On scratch disk /dev/sdb, create one Linux partition /dev/sdb1 of size 80M. Do not touch the OS disk.
+hints: ["Use sfdisk or fdisk.", "Validate with lsblk."]

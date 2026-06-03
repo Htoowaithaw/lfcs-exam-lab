@@ -14,3 +14,6 @@ phase5-ubuntu-regate-results.json
 phase5-operations-gate-results*.json
 phase5-operations-failed-rerun.json
 phase5-rocky-boolean-rerun.json
+phase5d-*.json
+phase5d-*.log
+phase5d-*.err

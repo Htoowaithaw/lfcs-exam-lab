@@ -74,7 +74,8 @@ function Invoke-Ssh($machine, $command) {
 }
 
 function Wait-Ssh($machine) {
-  $deadline = (Get-Date).AddSeconds(240)
+  $timeoutSeconds = if ($machine -eq "lfcs-rocky1") { 300 } else { 300 }
+  $deadline = (Get-Date).AddSeconds($timeoutSeconds)
   while ((Get-Date) -lt $deadline) {
     $r = Invoke-Ssh $machine "true"
     if ($r.Code -eq 0) { return }
@@ -88,6 +89,16 @@ function Invoke-VagrantUpNoProvision($machine) {
   try {
     & vagrant up $machine --no-provision | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "vagrant up --no-provision failed for $machine" }
+  } finally {
+    Pop-Location
+  }
+}
+
+function Invoke-VagrantReloadNoProvision($machine) {
+  Push-Location $LabRoot
+  try {
+    & vagrant reload $machine --no-provision | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "vagrant reload --no-provision failed for $machine" }
   } finally {
     Pop-Location
   }
@@ -111,30 +122,35 @@ function Invoke-VagrantSnapshotRestore($machine) {
 }
 
 function Restore-Base($machine) {
-  if ($machine -eq "lfcs-rocky1") {
-    Invoke-VagrantSnapshotRestore $machine
-    Invoke-VagrantUpNoProvision $machine
-    Wait-Ssh $machine
-    return
-  }
-
   $vbox = Get-VBoxName $machine
-  $info = & $VBoxManage showvminfo $vbox --machinereadable
-  $state = ($info | Where-Object { $_ -match '^VMState=' } | Select-Object -First 1)
-  if ($state -match '"running"') {
-    & $VBoxManage controlvm $vbox poweroff | Out-Null
-    Start-Sleep -Seconds 2
+  $lastError = $null
+  for ($attempt = 1; $attempt -le 2; $attempt++) {
+    try {
+      $info = & $VBoxManage showvminfo $vbox --machinereadable
+      $state = ($info | Where-Object { $_ -match '^VMState=' } | Select-Object -First 1)
+      if ($state -match '"running"') {
+        & $VBoxManage controlvm $vbox poweroff | Out-Null
+        Start-Sleep -Seconds 3
+      }
+      & $VBoxManage snapshot $vbox restore base | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "snapshot restore failed for $vbox" }
+      & $VBoxManage startvm $vbox --type headless | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "startvm failed for $vbox" }
+      try {
+        Wait-Ssh $machine
+      } catch {
+        Invoke-VagrantReloadNoProvision $machine
+        Wait-Ssh $machine
+      }
+      return
+    } catch {
+      $lastError = $_
+      if ($attempt -lt 2) {
+        Start-Sleep -Seconds 5
+      }
+    }
   }
-  & $VBoxManage snapshot $vbox restore base | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "snapshot restore failed for $vbox" }
-  & $VBoxManage startvm $vbox --type headless | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "startvm failed for $vbox" }
-  try {
-    Wait-Ssh $machine
-  } catch {
-    Invoke-VagrantUpNoProvision $machine
-    Wait-Ssh $machine
-  }
+  throw $lastError
 }
 
 function Read-Progress {

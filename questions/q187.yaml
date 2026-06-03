@@ -1,0 +1,10 @@
+id: q187
+title: "Configure skel file .lfcs-skel3"
+domain: "Users and Groups"
+topic: "skel template env"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Add /etc/skel/.lfcs-skel3 containing SKEL-3; verify newly created users receive it.
+hints: ["Modify /etc/skel.", "Create a probe user after the change."]

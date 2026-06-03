@@ -1,0 +1,10 @@
+id: q164
+title: "Create LVM volume vglfcs5/lvdata5"
+domain: "Storage"
+topic: "LVM"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Use scratch disk /dev/sdg as an LVM PV, create VG vglfcs5, LV lvdata5 sized 104M, format ext4, and mount it at /mnt/lfcs-lvm5.
+hints: ["Use pvcreate, vgcreate, lvcreate.", "Do not touch the OS VG."]

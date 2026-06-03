@@ -1,0 +1,10 @@
+id: q111
+title: "Add hostname resolution for lfcs-host7.example"
+domain: "Networking"
+topic: "IPv4/IPv6 + hostname resolution"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Add a local resolver entry so lfcs-host7.example resolves to 192.0.2.7.
+hints: ["Use /etc/hosts.", "getent hosts should show the requested address."]

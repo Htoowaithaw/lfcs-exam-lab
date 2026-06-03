@@ -1,0 +1,10 @@
+id: q197
+title: "Set root account unlock state 2"
+domain: "Users and Groups"
+topic: "root account access"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Set the root account password state to unlock.
+hints: ["Use passwd -l or passwd -u.", "Validate with passwd -S root."]

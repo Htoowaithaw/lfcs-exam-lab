@@ -1,0 +1,10 @@
+id: q160
+title: "Create LVM volume vglfcs1/lvdata1"
+domain: "Storage"
+topic: "LVM"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Use scratch disk /dev/sdg as an LVM PV, create VG vglfcs1, LV lvdata1 sized 72M, format ext4, and mount it at /mnt/lfcs-lvm1.
+hints: ["Use pvcreate, vgcreate, lvcreate.", "Do not touch the OS VG."]

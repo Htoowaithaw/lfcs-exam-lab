@@ -1,0 +1,10 @@
+id: q155
+title: "Persist mount /mnt/lfcs-fstab5"
+domain: "Storage"
+topic: "fstab boot mounts"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create an ext4 filesystem labeled fstab5 on /dev/sde1, mount it at /mnt/lfcs-fstab5, add a UUID-based /etc/fstab entry, and ensure mount -a succeeds.
+hints: ["Use UUID rather than a raw device path.", "Validation runs mount -a."]

@@ -27,7 +27,7 @@ Authoritative source map for later question-bank scaling. `distro=rocky` must ru
 | Operations & Deployment | apt repositories | 3 | ubuntu | no |
 | Operations & Deployment | dnf/yum repositories | 3 | rocky | no |
 | Operations & Deployment | compile from source | 3 | ubuntu | no |
-| Operations & Deployment | resource monitoring | 4 | ubuntu | no |
+| Operations & Deployment | resource monitoring | 5 | ubuntu | no |
 | Operations & Deployment | sysctl | 3 | ubuntu | no |
 | Operations & Deployment | SELinux enable/manage | 4 | rocky | no |
 | Operations & Deployment | SELinux context mgmt | 4 | rocky | no |

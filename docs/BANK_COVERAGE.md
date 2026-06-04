@@ -2,7 +2,7 @@
 
 Generated from `docs/QUESTION_SOURCE.md` and `questions/*.yaml`.
 
-Total built questions: 249
+Total built questions: 250
 
 | domain | topic | target_count | built_count | remaining | distro | multivm |
 |---|---|---:|---:|---:|---|---|
@@ -29,7 +29,7 @@ Total built questions: 249
 | Operations & Deployment | apt repositories | 3 | 3 | 0 | ubuntu | no |
 | Operations & Deployment | dnf/yum repositories | 3 | 3 | 0 | rocky | no |
 | Operations & Deployment | compile from source | 3 | 3 | 0 | ubuntu | no |
-| Operations & Deployment | resource monitoring | 4 | 4 | 0 | ubuntu | no |
+| Operations & Deployment | resource monitoring | 5 | 5 | 0 | ubuntu | no |
 | Operations & Deployment | sysctl | 3 | 3 | 0 | ubuntu | no |
 | Operations & Deployment | SELinux enable/manage | 4 | 4 | 0 | rocky | no |
 | Operations & Deployment | SELinux context mgmt | 4 | 4 | 0 | rocky | no |

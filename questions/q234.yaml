@@ -1,0 +1,18 @@
+id: q234
+title: "Create a focused resource monitoring report"
+domain: "Operations & Deployment"
+topic: "resource monitoring"
+difficulty: medium
+distro: ubuntu
+vms: [node1]
+question: |
+  Create /root/lfcs-resource-report.txt as root.
+  The report must contain these exact section labels, each on its own line:
+  === TOP CPU ===
+  === VMSTAT ===
+  === LOAD ===
+  Under TOP CPU, include a ps snapshot with the columns PID, PPID, %CPU, %MEM, and COMMAND, sorted by highest CPU first.
+  Under VMSTAT, include at least two vmstat samples taken one second apart.
+  Under LOAD, include the current uptime output containing the load average.
+  The file must be owned by root:root and have mode 0640.
+hints: ["Use ps -eo with --sort=-%cpu.", "Use vmstat 1 2 and uptime."]

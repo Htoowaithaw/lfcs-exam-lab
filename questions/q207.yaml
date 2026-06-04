@@ -1,0 +1,10 @@
+id: q207
+title: "Connect NBD export lfcsnbd3"
+domain: "Storage"
+topic: "NBD"
+difficulty: hard
+distro: ubuntu
+vms: [node1,node2]
+question: |
+  On node2, export a 64M NBD image named lfcsnbd3 from /srv/lfcsnbd3.img. On node1, connect it as /dev/nbd2, create an ext4 filesystem labeled lfcsnbd3, and mount it at /mnt/lfcsnbd3.
+hints: ["Use nbd-server on node2.", "Use nbd-client from node1."]

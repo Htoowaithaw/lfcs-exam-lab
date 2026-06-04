@@ -1,0 +1,10 @@
+id: q212
+title: "Forward node1 port 18604 to node2"
+domain: "Networking"
+topic: "port redirection & NAT"
+difficulty: hard
+distro: ubuntu
+vms: [node1,node2]
+question: |
+  On node2, run a web response on TCP 18604 containing NAT-4-NODE2. On node1, redirect TCP 18604 arriving at 192.168.56.11 to node2 192.168.56.12:18604 and enable forwarding.
+hints: ["Use iptables nat rules.", "Validate by curling node1's host-only IP."]

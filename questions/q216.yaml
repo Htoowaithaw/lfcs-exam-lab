@@ -1,0 +1,10 @@
+id: q216
+title: "Reverse proxy to node2 backend 2"
+domain: "Networking"
+topic: "reverse proxy & load balancer"
+difficulty: hard
+distro: ubuntu
+vms: [node1,node2]
+question: |
+  On node2, serve HTTP on 192.168.56.12:18702 returning PROXY-2-NODE2. On node1, configure nginx to listen on TCP 18802 and reverse proxy to that backend.
+hints: ["Use nginx proxy_pass.", "Validate with curl against node1."]

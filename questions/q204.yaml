@@ -1,0 +1,10 @@
+id: q204
+title: "Mount NFS export 6"
+domain: "Storage"
+topic: "NFS"
+difficulty: hard
+distro: ubuntu
+vms: [node1,node2]
+question: |
+  On node2, export /srv/lfcs-nfs6 to node1 (192.168.56.11) as read-only NFS. On node1, mount it at /mnt/lfcs-nfs6 persistently using node2's host-only IP 192.168.56.12. The file /srv/lfcs-nfs6/data.txt must be readable from node1 and contain NFS-6-OK.
+hints: ["Configure /etc/exports on node2.", "Mount from node1 using the host-only address."]

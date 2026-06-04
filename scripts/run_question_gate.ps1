@@ -15,12 +15,16 @@ function Read-Question($qid) {
   $distro = "ubuntu"
   $domain = ""
   $topic = ""
+  $vms = @()
   foreach ($line in $lines) {
     if ($line -match '^distro:\s*(.+)$') { $distro = $Matches[1].Trim('" ') }
     elseif ($line -match '^domain:\s*(.+)$') { $domain = $Matches[1].Trim('" ') }
     elseif ($line -match '^topic:\s*(.+)$') { $topic = $Matches[1].Trim('" ') }
+    elseif ($line -match '^vms:\s*\[(.*)\]\s*$') {
+      $vms = @($Matches[1] -split "," | ForEach-Object { $_.Trim().Trim('" ') } | Where-Object { $_ })
+    }
   }
-  return [pscustomobject]@{ id=$qid; distro=$distro; domain=$domain; topic=$topic }
+  return [pscustomobject]@{ id=$qid; distro=$distro; domain=$domain; topic=$topic; vms=$vms }
 }
 
 function Get-Machine($distro) {
@@ -28,8 +32,21 @@ function Get-Machine($distro) {
   return "node1"
 }
 
+function Get-Machines($q) {
+  if ($q.vms -and @($q.vms).Count -gt 0) { return @($q.vms) }
+  return @((Get-Machine $q.distro))
+}
+
+function Get-SolutionMachines($q) {
+  $machines = @(Get-Machines $q)
+  if ($machines.Count -le 1) { return $machines }
+  if ($q.topic -eq "SSH server & client") { return $machines }
+  return @($machines[($machines.Count - 1)..0])
+}
+
 function Get-VBoxName($machine) {
   if ($machine -eq "node1") { return "lfcs-node1" }
+  if ($machine -eq "node2") { return "lfcs-node2" }
   if ($machine -eq "lfcs-rocky1") { return "lfcs-rocky1" }
   throw "Unknown machine $machine"
 }
@@ -82,6 +99,60 @@ function Wait-Ssh($machine) {
     Start-Sleep -Seconds 2
   }
   throw "SSH not ready for $machine"
+}
+
+function Wait-PeerSsh($machines) {
+  if (@($machines).Count -lt 2) { return }
+  $checks = @(
+    @{ machine="node1"; peer="192.168.56.12" },
+    @{ machine="node2"; peer="192.168.56.11" }
+  )
+  foreach ($check in $checks) {
+    if ($machines -notcontains $check.machine) { continue }
+    $deadline = (Get-Date).AddSeconds(60)
+    while ((Get-Date) -lt $deadline) {
+      $r = Invoke-Ssh $check.machine "timeout 2 bash -c '</dev/tcp/$($check.peer)/22'"
+      if ($r.Code -eq 0) { break }
+      Start-Sleep -Seconds 2
+    }
+    if ((Get-Date) -ge $deadline) { throw "peer SSH not ready from $($check.machine) to $($check.peer)" }
+  }
+}
+
+function Get-ServiceReadinessCommands($q) {
+  $qidNum = [int]$q.id.Substring(1)
+  switch ($q.topic) {
+    "NFS" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/2049'") }
+    "NBD" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/10809'") }
+    "reverse proxy & load balancer" {
+      $n = $qidNum - 214
+      $backend = 18700 + $n
+      $listen = 18800 + $n
+      return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/$backend'", "timeout 2 bash -c '</dev/tcp/127.0.0.1/$listen'")
+    }
+    "port redirection & NAT" {
+      $n = $qidNum - 208
+      $port = 18600 + $n
+      return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/$port'")
+    }
+    "NTP time sync" { return @("chronyc sources -n | grep -q '192.168.56.12'") }
+    "SSH server & client" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/22'") }
+    "LDAP accounts" { return @("timeout 2 bash -c '</dev/tcp/192.168.56.12/389'") }
+    default { return @() }
+  }
+}
+
+function Wait-ServiceReadiness($q, $primary) {
+  $commands = @(Get-ServiceReadinessCommands $q)
+  foreach ($command in $commands) {
+    $deadline = (Get-Date).AddSeconds(60)
+    while ((Get-Date) -lt $deadline) {
+      $r = Invoke-Ssh $primary $command
+      if ($r.Code -eq 0) { break }
+      Start-Sleep -Seconds 2
+    }
+    if ((Get-Date) -ge $deadline) { throw "readiness wait failed on ${primary}: $command" }
+  }
 }
 
 function Invoke-VagrantUpNoProvision($machine) {
@@ -181,15 +252,26 @@ $ExpandedQuestionIds = @($QuestionIds | ForEach-Object { $_ -split "," } | Where
 $rows = New-Object System.Collections.Generic.List[object]
 foreach ($qid in $ExpandedQuestionIds) {
   $q = Read-Question $qid
-  $machine = Get-Machine $q.distro
-  $row = [ordered]@{ id=$qid; topic=$q.topic; distro=$q.distro; load="FAIL"; unsolved="FAIL"; solved="FAIL"; restored="FAIL"; unsolved_last=""; solved_last="" }
+  $machines = @(Get-Machines $q)
+  $primary = $machines[0]
+  $row = [ordered]@{ id=$qid; topic=$q.topic; distro=$q.distro; vms=($machines -join ","); load="FAIL"; unsolved="FAIL"; solved="FAIL"; restored="FAIL"; unsolved_last=""; solved_last="" }
   try {
-    Restore-Base $machine
-    $inject = Invoke-Ssh $machine "sudo bash /vagrant/inject/$qid.sh"
-    if ($inject.Code -ne 0) { throw "inject failed: $($inject.Output -join ' ')" }
+    foreach ($machine in $machines) { Restore-Base $machine }
+    Wait-PeerSsh $machines
+    foreach ($machine in $machines) {
+      $machineInject = Join-Path $LabRoot "inject\$qid.$machine.sh"
+      $defaultInject = Join-Path $LabRoot "inject\$qid.sh"
+      if (Test-Path $machineInject) {
+        $inject = Invoke-Ssh $machine "sudo bash /vagrant/inject/$qid.$machine.sh"
+        if ($inject.Code -ne 0) { throw "inject failed on ${machine}: $($inject.Output -join ' ')" }
+      } elseif ($machines.Count -eq 1 -and (Test-Path $defaultInject)) {
+        $inject = Invoke-Ssh $machine "sudo bash /vagrant/inject/$qid.sh"
+        if ($inject.Code -ne 0) { throw "inject failed on ${machine}: $($inject.Output -join ' ')" }
+      }
+    }
     $row.load = "PASS"
 
-    $unsolved = Invoke-Ssh $machine "sudo bash /vagrant/validate/$qid.sh"
+    $unsolved = Invoke-Ssh $primary "sudo bash /vagrant/validate/$qid.sh"
     $row.unsolved_last = (($unsolved.Output | Select-Object -Last 1) -join "")
     if ($unsolved.Code -ne 0 -and $row.unsolved_last -match '^RESULT: FAIL - ') {
       $row.unsolved = "PASS"
@@ -198,11 +280,21 @@ foreach ($qid in $ExpandedQuestionIds) {
       throw "unsolved validate did not fail correctly: code=$($unsolved.Code) last=$($row.unsolved_last)"
     }
 
-    $solutionPath = if (Test-Path (Join-Path $LabRoot "solution\$qid.sh")) { "solution" } else { "solutions" }
-    $solvedApply = Invoke-Ssh $machine "sudo bash /vagrant/$solutionPath/$qid.sh"
-    if ($solvedApply.Code -ne 0) { throw "solution failed: $($solvedApply.Output -join ' ')" }
+    $solutionMachines = if ($machines.Count -le 1) { $machines } else { @(Get-SolutionMachines $q) }
+    foreach ($machine in $solutionMachines) {
+      $machineSolution = Join-Path $LabRoot "solution\$qid.$machine.sh"
+      $defaultSolution = Join-Path $LabRoot "solution\$qid.sh"
+      if (Test-Path $machineSolution) {
+        $solvedApply = Invoke-Ssh $machine "sudo bash /vagrant/solution/$qid.$machine.sh"
+        if ($solvedApply.Code -ne 0) { throw "solution failed on ${machine}: $($solvedApply.Output -join ' ')" }
+      } elseif ($machines.Count -eq 1 -and (Test-Path $defaultSolution)) {
+        $solvedApply = Invoke-Ssh $machine "sudo bash /vagrant/solution/$qid.sh"
+        if ($solvedApply.Code -ne 0) { throw "solution failed on ${machine}: $($solvedApply.Output -join ' ')" }
+      }
+    }
 
-    $solved = Invoke-Ssh $machine "sudo bash /vagrant/validate/$qid.sh"
+    if ($machines.Count -gt 1) { Wait-ServiceReadiness $q $primary }
+    $solved = Invoke-Ssh $primary "sudo bash /vagrant/validate/$qid.sh"
     $row.solved_last = (($solved.Output | Select-Object -Last 1) -join "")
     if ($solved.Code -eq 0 -and $row.solved_last -eq "RESULT: PASS") {
       $row.solved = "PASS"
@@ -211,7 +303,7 @@ foreach ($qid in $ExpandedQuestionIds) {
       throw "solved validate did not pass: code=$($solved.Code) last=$($row.solved_last)"
     }
 
-    Restore-Base $machine
+    foreach ($machine in $machines) { Restore-Base $machine }
     $row.restored = "PASS"
   } catch {
     $row.error = $_.Exception.Message

@@ -3,6 +3,20 @@ set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 
+debconf-set-selections <<'EOF'
+slapd slapd/no_configuration boolean false
+slapd slapd/domain string lfcs.lab
+slapd shared/organization string LFCS Lab
+slapd slapd/password1 password admin
+slapd slapd/password2 password admin
+slapd slapd/backend select MDB
+slapd slapd/purge_database boolean true
+slapd slapd/move_old_database boolean true
+libnss-ldapd libnss-ldapd/nsswitch multiselect passwd, group
+nslcd nslcd/ldap-uris string ldap://192.168.56.12/
+nslcd nslcd/ldap-base string dc=lfcs,dc=lab
+EOF
+
 apt-get update
 apt-get install -y \
   acl \
@@ -21,8 +35,12 @@ apt-get install -y \
   findutils \
   git \
   gzip \
+  haproxy \
   iproute2 \
+  iptables \
   jq \
+  ldap-utils \
+  libnss-ldapd \
   libvirt-clients \
   libvirt-daemon-system \
   less \
@@ -32,14 +50,18 @@ apt-get install -y \
   mdadm \
   nano \
   net-tools \
+  nbd-client \
+  nbd-server \
   nfs-common \
   nfs-kernel-server \
   nginx \
+  nslcd \
   openssl \
   passwd \
   procps \
   psmisc \
   rsync \
+  slapd \
   sudo \
   tar \
   tree \
@@ -47,6 +69,7 @@ apt-get install -y \
   vim
 
 systemctl enable --now cron
+systemctl enable chrony >/dev/null 2>&1 || true
 
 mkdir -p /opt/lfcs-lab /srv/lfcs
 echo "lfcs base provisioned" > /opt/lfcs-lab/base.txt

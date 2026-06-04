@@ -1,0 +1,10 @@
+id: q229
+title: "Configure key SSH node1 to node2 5"
+domain: "Networking"
+topic: "SSH server & client"
+difficulty: hard
+distro: ubuntu
+vms: [node1,node2]
+question: |
+  Create user remoteuser5 on node2. From node1, configure key-based SSH to node2 using alias lfcs-node2-5, strict known_hosts, and the host-only IP 192.168.56.12. Non-interactive ssh lfcs-node2-5 true must succeed without a password.
+hints: ["Install node1's public key in node2 authorized_keys.", "Use /root/.ssh/config and ssh-keyscan."]

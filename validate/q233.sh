@@ -2,7 +2,16 @@
 set -euo pipefail
 fail(){ echo "RESULT: FAIL - $1"; exit 1; }
 getent passwd ldapuser4 | awk -F: '$1=="ldapuser4" && $3==3104 && $6=="/home/ldapuser4" && $7=="/bin/bash" {found=1} END {exit !found}' || fail 'LDAP passwd entry not visible on node1'
-ldapsearch -x -H ldap://192.168.56.12/ -b dc=lfcs,dc=lab uid=ldapuser4 uidNumber | grep -q 'uidNumber: 3104' || fail 'LDAP server entry is missing or wrong'
+entry=$(ldapsearch -LLL -x -H ldap://192.168.56.12/ -b uid=ldapuser4,ou=People,dc=lfcs,dc=lab uid uidNumber cn sn homeDirectory loginShell objectClass 2>/dev/null)
+printf '%s\n' "$entry" | grep -qx 'dn: uid=ldapuser4,ou=People,dc=lfcs,dc=lab' || fail 'LDAP user DN/base is wrong'
+printf '%s\n' "$entry" | grep -qx 'uid: ldapuser4' || fail 'LDAP uid attribute is wrong'
+printf '%s\n' "$entry" | grep -qx 'uidNumber: 3104' || fail 'LDAP uidNumber is wrong'
+printf '%s\n' "$entry" | grep -qx 'cn: ldapuser4' || fail 'LDAP cn is wrong'
+printf '%s\n' "$entry" | grep -qx 'sn: ldapuser4' || fail 'LDAP sn is wrong'
+printf '%s\n' "$entry" | grep -qx 'homeDirectory: /home/ldapuser4' || fail 'LDAP homeDirectory is wrong'
+printf '%s\n' "$entry" | grep -qx 'loginShell: /bin/bash' || fail 'LDAP loginShell is wrong'
+printf '%s\n' "$entry" | grep -qx 'objectClass: posixAccount' || fail 'LDAP objectClass posixAccount missing'
 grep -Eq '^uri[[:space:]]+ldap://192.168.56.12/' /etc/nslcd.conf || fail 'node1 LDAP URI is wrong'
+grep -Eq '^base[[:space:]]+dc=lfcs,dc=lab' /etc/nslcd.conf || fail 'node1 LDAP base DN is wrong'
 grep -Eq '^passwd:.*ldap' /etc/nsswitch.conf || fail 'node1 passwd NSS does not include ldap'
 echo "RESULT: PASS"

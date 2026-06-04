@@ -3,7 +3,11 @@ set -euo pipefail
 fail(){ echo "RESULT: FAIL - $1"; exit 1; }
 test -s /root/.ssh/lfcs-q229 || fail 'node1 private key missing'
 grep -q '^Host lfcs-node2-5$' /root/.ssh/config || fail 'ssh alias missing'
-grep -q 'HostName 192.168.56.12' /root/.ssh/config || fail 'ssh HostName is wrong'
+grep -Eq '^[[:space:]]+HostName[[:space:]]+192.168.56.12$' /root/.ssh/config || fail 'ssh HostName is wrong'
+grep -Eq '^[[:space:]]+User[[:space:]]+remoteuser5$' /root/.ssh/config || fail 'ssh User is wrong'
+grep -Eq '^[[:space:]]+IdentityFile[[:space:]]+/root/.ssh/lfcs-q229$' /root/.ssh/config || fail 'ssh IdentityFile is wrong'
+grep -Eq '^[[:space:]]+IdentitiesOnly[[:space:]]+yes$' /root/.ssh/config || fail 'IdentitiesOnly is not enforced'
+grep -Eq '^[[:space:]]+StrictHostKeyChecking[[:space:]]+yes$' /root/.ssh/config || fail 'StrictHostKeyChecking is not enforced'
 ssh-keygen -F 192.168.56.12 >/dev/null || fail 'known_hosts entry missing'
-ssh -F /root/.ssh/config -o BatchMode=yes lfcs-node2-5 true || fail 'non-interactive SSH to node2 failed'
+ssh -F /root/.ssh/config -o BatchMode=yes lfcs-node2-5 'test "$(id -un)" = "remoteuser5"' || fail 'non-interactive SSH to node2 failed'
 echo "RESULT: PASS"

@@ -1,8 +1,14 @@
 .vagrant/
 .vagrant.d/
 .ssh-cache.json
+progress.json
+data/exam-sessions.json
+*.box
 *.log
 *.tmp
+*-gate-results*.json
+scratch/
+scratch-*/
 self-test-results.json
 self-test-rocky-results.json
 self-test-phase3-results.json
@@ -24,4 +30,8 @@ phase6-*.json
 phase6-*.log
 phase6-*.err
 phase6-*.txt
+phase7-*.json
+phase7-*.log
+phase7-*.err
+phase7-*.txt
 .tmp-q*.pub

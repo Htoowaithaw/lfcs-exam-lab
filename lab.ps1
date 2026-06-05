@@ -164,6 +164,14 @@ function Get-VBoxName($machine) {
   }
 }
 
+function Test-LabVmRunning($machine) {
+  $vboxName = Get-VBoxName $machine
+  $info = & $VBoxManage showvminfo $vboxName --machinereadable 2>$null
+  if ($LASTEXITCODE -ne 0) { return $false }
+  $stateLine = $info | Where-Object { $_ -match '^VMState=' } | Select-Object -First 1
+  return ($stateLine -match '"running"')
+}
+
 function Read-SshCache {
   if (!(Test-Path $SshCachePath)) { return @{} }
   $raw = Get-Content -Raw -LiteralPath $SshCachePath
@@ -196,44 +204,35 @@ function Get-SshInfoFromVagrant($machine) {
   return $info
 }
 
-function Refresh-SshCache {
-  $cache = @{}
-  foreach ($machine in @("node1", "node2", "lfcs-rocky1")) {
-    $cache[$machine] = Get-SshInfoFromVagrant $machine
-  }
-  Save-SshCache $cache
-  return $cache
-}
-
 function Get-SshInfo($machine) {
   $cache = Read-SshCache
-  if (!$cache.ContainsKey("node1") -or !$cache.ContainsKey("node2") -or !$cache.ContainsKey("lfcs-rocky1")) {
-    $cache = Refresh-SshCache
-  }
   if ($cache.ContainsKey($machine)) {
     return $cache[$machine]
   }
-  throw "No SSH cache entry for $machine"
+
+  try {
+    $cache[$machine] = Get-SshInfoFromVagrant $machine
+    Save-SshCache $cache
+    return $cache[$machine]
+  }
+  catch {
+    throw "VM '$machine' is unavailable or not SSH-ready. Run: vagrant up $machine"
+  }
 }
 
 function Invoke-InteractiveSsh($machine) {
   $info = Get-SshInfo $machine
-  $knownHosts = if ($IsWindows -or $env:OS -eq "Windows_NT") { "NUL" } else { "/dev/null" }
   Write-Host "Opening SSH shell for $machine. Type 'exit' to return to the lab menu."
   $sshArgs = @(
-    $(if ([Console]::IsInputRedirected) { "-T" } else { "-tt" }),
-    "-o", "StrictHostKeyChecking=no",
-    "-o", "UserKnownHostsFile=$knownHosts",
-    "-o", "LogLevel=ERROR",
+    "-t",
+    "-o", "StrictHostKeyChecking=accept-new",
     "-o", "PasswordAuthentication=no",
     "-o", "IdentitiesOnly=yes",
     "-i", $info.IdentityFile,
     "-p", $info.Port,
     "$($info.User)@$($info.HostName)"
   )
-  if ([Console]::IsInputRedirected) {
-    $sshArgs += "bash -l"
-  }
+  Write-Host ("SSH command: ssh {0}" -f ($sshArgs -join " "))
   & ssh @sshArgs
   if ($LASTEXITCODE -ne 0) { Write-Host "SSH exited with code $LASTEXITCODE" }
   Write-Host "Task shown above and saved to /root/TASK.md"
@@ -271,6 +270,7 @@ function Invoke-DirectSsh($machine, $command) {
       "-o" "StrictHostKeyChecking=no" `
       "-o" "UserKnownHostsFile=$knownHosts" `
       "-o" "LogLevel=ERROR" `
+      "-o" "ConnectTimeout=5" `
       "-o" "PasswordAuthentication=no" `
       "-o" "IdentitiesOnly=yes" `
       "-i" $info.IdentityFile `
@@ -282,6 +282,11 @@ function Invoke-DirectSsh($machine, $command) {
   finally {
     $ErrorActionPreference = $oldErrorAction
   }
+}
+
+function Invoke-VagrantReloadNoProvision($machine) {
+  $rc = Invoke-Vagrant "reload" $machine "--no-provision"
+  if ($rc -ne 0) { throw "Vagrant reload --no-provision failed for $machine" }
 }
 
 function Wait-DirectSsh($machine) {
@@ -364,7 +369,13 @@ function Restore-BaseSnapshot($machine) {
     if ($LASTEXITCODE -ne 0) { throw "VBoxManage snapshot restore failed for $vboxName" }
     & $VBoxManage startvm $vboxName --type headless | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "VBoxManage startvm failed for $vboxName" }
-    Wait-DirectSsh $machine
+    try {
+      Wait-DirectSsh $machine
+    }
+    catch {
+      Invoke-VagrantReloadNoProvision $machine
+      Wait-DirectSsh $machine
+    }
     return
   }
 
@@ -386,7 +397,13 @@ function Restore-BaseSnapshot($machine) {
   if ($LASTEXITCODE -ne 0) { throw "VBoxManage snapshot restore failed for $vboxName" }
   & $VBoxManage startvm $vboxName --type headless | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "VBoxManage startvm failed for $vboxName" }
-  Wait-DirectSsh $machine
+  try {
+    Wait-DirectSsh $machine
+  }
+  catch {
+    Invoke-VagrantReloadNoProvision $machine
+    Wait-DirectSsh $machine
+  }
 }
 
 function Format-TaskText($question) {
@@ -416,30 +433,47 @@ function Install-TaskText($question, $target) {
 function Load-Question($question) {
   $qid = $question.id
   $machines = @(Get-QuestionMachines $question)
-  foreach ($target in $machines) {
-    Write-Host "Restoring $target base snapshot..."
-    Restore-BaseSnapshot $target
-  }
-  Wait-PeerSsh $machines
-  foreach ($target in $machines) {
-    $machineScript = Join-Path $LabRoot "inject/$qid.$target.sh"
-    $defaultScript = Join-Path $LabRoot "inject/$qid.sh"
-    if (Test-Path $machineScript) {
-      Write-Host "Injecting $qid on $target..."
-      $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.$target.sh"
-      $result.Output | ForEach-Object { Write-Host $_ }
-      if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
-    } elseif ($machines.Count -eq 1 -and (Test-Path $defaultScript)) {
-      Write-Host "Injecting $qid..."
-      $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.sh"
-      $result.Output | ForEach-Object { Write-Host $_ }
-      if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
+  try {
+    foreach ($target in $machines) {
+      if ($target -eq "lfcs-rocky1" -and !(Test-LabVmRunning $target)) {
+        throw "VM 'lfcs-rocky1' is unavailable or not SSH-ready. Run: vagrant up lfcs-rocky1"
+      }
     }
+    foreach ($target in $machines) {
+      Write-Host "Restoring $target base snapshot..."
+      Restore-BaseSnapshot $target
+    }
+    Wait-PeerSsh $machines
+    foreach ($target in $machines) {
+      $machineScript = Join-Path $LabRoot "inject/$qid.$target.sh"
+      $defaultScript = Join-Path $LabRoot "inject/$qid.sh"
+      if (Test-Path $machineScript) {
+        Write-Host "Injecting $qid on $target..."
+        $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.$target.sh"
+        $result.Output | ForEach-Object { Write-Host $_ }
+        if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
+      } elseif ($machines.Count -eq 1 -and (Test-Path $defaultScript)) {
+        Write-Host "Injecting $qid..."
+        $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.sh"
+        $result.Output | ForEach-Object { Write-Host $_ }
+        if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
+      }
+    }
+    foreach ($target in $machines) {
+      Install-TaskText $question $target
+    }
+    Update-Progress $qid "attempted" $false
+    return $true
   }
-  foreach ($target in $machines) {
-    Install-TaskText $question $target
+  catch {
+    $message = $_.Exception.Message
+    Write-Host $message
+    foreach ($target in $machines) {
+      $warning = "VM '$target' is unavailable or not SSH-ready. Run: vagrant up $target"
+      if ($message -ne $warning) { Write-Host $warning }
+    }
+    return $false
   }
-  Update-Progress $qid "attempted" $false
 }
 
 function Validate-Question($question) {
@@ -501,7 +535,7 @@ function Start-PracticeMode {
   if (![string]::IsNullOrWhiteSpace($AutoPracticeQuestionId)) {
     $question = @(Get-Questions | Where-Object { $_.id -eq $AutoPracticeQuestionId })[0]
     if ($null -eq $question) { throw "Practice question '$AutoPracticeQuestionId' not found" }
-    Load-Question $question
+    if (!(Load-Question $question)) { return }
     [void](Validate-Question $question)
     if ($AutoPracticeSolve) {
       Invoke-Solution $question
@@ -523,7 +557,10 @@ function Start-PracticeMode {
     if ($null -eq $current -or [string]::IsNullOrWhiteSpace($current.id)) {
       throw "Selected question number '$choice' did not resolve to a real qid"
     }
-    Load-Question $current
+    if (!(Load-Question $current)) {
+      Read-Host "Press Enter"
+      continue
+    }
     $showHints = $false
 
     while ($true) {
@@ -543,7 +580,7 @@ function Start-PracticeMode {
       if ($action -eq "v") { [void](Validate-Question $current); Read-Host "Press Enter" }
       elseif ($action -eq "s") { Invoke-InteractiveSsh (Select-SshMachine $current) }
       elseif ($action -eq "t") { Show-TaskText $current; Read-Host "Press Enter" }
-      elseif ($action -eq "r") { Load-Question $current }
+      elseif ($action -eq "r") { [void](Load-Question $current) }
       elseif ($action -eq "h") { $showHints = !$showHints }
       elseif ($action -eq "q") { break }
     }
@@ -636,7 +673,10 @@ function Start-ExamMode {
     for ($i = 0; $i -lt $questions.Count; $i++) {
       if ((Get-Date) -ge $endTs) { return Complete-ExamSession $session "timeout" $started $endTs }
       $q = $questions[$i]
-      Load-Question $q
+      if (!(Load-Question $q)) {
+        $session.per_question[$i].result = "FAIL"
+        continue
+      }
       if ($AutoApplySolutions -gt $i) { Invoke-Solution $q }
       $rc = Validate-Question $q
       $session.per_question[$i].result = if ($rc -eq 0) { "PASS" } else { "FAIL" }
@@ -668,7 +708,10 @@ function Start-ExamMode {
     $idx = [int]$choice - 1
     $current = $questions[$idx]
     Write-Host "Reload warning: opening $($current.id) restores a fresh state for that VM."
-    Load-Question $current
+    if (!(Load-Question $current)) {
+      Read-Host "Press Enter"
+      continue
+    }
     while ($true) {
       if ((Get-Date) -ge $endTs) { return Complete-ExamSession $session "timeout" $started $endTs }
       Write-Host ""
@@ -688,7 +731,6 @@ function Start-ExamMode {
 }
 
 Ensure-DataFiles
-Refresh-SshCache | Out-Null
 
 if ($Mode -eq "Practice") {
   Start-PracticeMode

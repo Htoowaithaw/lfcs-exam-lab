@@ -165,11 +165,13 @@ function Get-VBoxName($machine) {
 }
 
 function Test-LabVmRunning($machine) {
-  $vboxName = Get-VBoxName $machine
-  $info = & $VBoxManage showvminfo $vboxName --machinereadable 2>$null
-  if ($LASTEXITCODE -ne 0) { return $false }
-  $stateLine = $info | Where-Object { $_ -match '^VMState=' } | Select-Object -First 1
-  return ($stateLine -match '"running"')
+  try {
+    return (Get-LabVmState $machine) -eq "running"
+  }
+  catch {
+    Write-Host $_.Exception.Message
+    return $false
+  }
 }
 
 function Read-SshCache {
@@ -271,6 +273,8 @@ function Invoke-DirectSsh($machine, $command) {
       "-o" "UserKnownHostsFile=$knownHosts" `
       "-o" "LogLevel=ERROR" `
       "-o" "ConnectTimeout=5" `
+      "-o" "ConnectionAttempts=1" `
+      "-o" "BatchMode=yes" `
       "-o" "PasswordAuthentication=no" `
       "-o" "IdentitiesOnly=yes" `
       "-i" $info.IdentityFile `
@@ -284,23 +288,86 @@ function Invoke-DirectSsh($machine, $command) {
   }
 }
 
-function Invoke-VagrantReloadNoProvision($machine) {
-  $rc = Invoke-Vagrant "reload" $machine "--no-provision"
-  if ($rc -ne 0) { throw "Vagrant reload --no-provision failed for $machine" }
+function Invoke-VBoxManageChecked {
+  param(
+    [Parameter(Mandatory=$true)][string]$Operation,
+    [Parameter(Mandatory=$true)][string[]]$Arguments,
+    [switch]$ShowOutput
+  )
+  $oldErrorAction = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    $output = & $VBoxManage @Arguments 2>&1
+    $code = $LASTEXITCODE
+  }
+  finally {
+    $ErrorActionPreference = $oldErrorAction
+  }
+  if ($code -ne 0) {
+    $detail = (@($output) -join [Environment]::NewLine).Trim()
+    if ([string]::IsNullOrWhiteSpace($detail)) { $detail = "VBoxManage exited with code $code" }
+    throw "$Operation failed: $detail"
+  }
+  if ($ShowOutput) { @($output) | ForEach-Object { Write-Host $_ } }
+  return @($output)
 }
 
-function Wait-DirectSsh($machine) {
-  $timeoutSeconds = if ($machine -eq "lfcs-rocky1") { 300 } else { 120 }
+function Get-LabVmState($machine) {
+  $vboxName = Get-VBoxName $machine
+  $output = Invoke-VBoxManageChecked -Operation "VBoxManage showvminfo for $vboxName" -Arguments @("showvminfo", $vboxName, "--machinereadable")
+  $stateLine = $output | Where-Object { $_ -match '^VMState=' } | Select-Object -First 1
+  if (!$stateLine) { throw "VBoxManage did not report VMState for $vboxName" }
+  if ($stateLine -match '^VMState="([^"]+)"') { return $Matches[1] }
+  return $stateLine
+}
+
+function Show-LabVmStateDiagnostic($machine) {
+  $vboxName = Get-VBoxName $machine
+  $oldErrorAction = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    $output = & $VBoxManage showvminfo $vboxName --machinereadable 2>&1
+    $code = $LASTEXITCODE
+  }
+  finally {
+    $ErrorActionPreference = $oldErrorAction
+  }
+  $state = @($output | Where-Object { $_ -match '^(VMState|VMStateChangeTime)=' })
+  if ($state.Count -gt 0) {
+    Write-Host ("Diagnostic for {0}: {1}" -f $vboxName, ($state -join "; "))
+  } elseif ($code -ne 0) {
+    Write-Host ("Diagnostic for {0} failed: {1}" -f $vboxName, (@($output) -join " "))
+  }
+}
+
+function Set-LabVmSshForwarding($machine) {
+  $vboxName = Get-VBoxName $machine
+  $sshInfo = Get-SshInfo $machine
+  $details = Invoke-VBoxManageChecked -Operation "VBoxManage showvminfo for $vboxName" -Arguments @("showvminfo", $vboxName, "--machinereadable")
+  $hasSshRule = @($details | Where-Object { $_ -match '^Forwarding\(\d+\)="ssh,' }).Count -gt 0
+  if ($hasSshRule) {
+    [void](Invoke-VBoxManageChecked -Operation "VBoxManage remove SSH forwarding for $vboxName" -Arguments @("controlvm", $vboxName, "natpf1", "delete", "ssh") -ShowOutput)
+  }
+  $rule = "ssh,tcp,$($sshInfo.HostName),$($sshInfo.Port),,22"
+  [void](Invoke-VBoxManageChecked -Operation "VBoxManage configure SSH forwarding for $vboxName" -Arguments @("controlvm", $vboxName, "natpf1", $rule) -ShowOutput)
+}
+
+function Wait-DirectSsh($machine, [int]$timeoutSeconds = 90) {
   $deadline = (Get-Date).AddSeconds($timeoutSeconds)
   while ((Get-Date) -lt $deadline) {
+    if ((Get-LabVmState $machine) -ne "running") {
+      Show-LabVmStateDiagnostic $machine
+      throw "VM $machine did not become SSH-ready (powered off / boot failed). Run: vagrant up $machine"
+    }
     $result = Invoke-DirectSsh $machine "true"
-    if ($result.Code -eq 0) { return }
+    if ($result.Code -eq 0) { return $true }
     Start-Sleep -Seconds 2
   }
-  throw "SSH did not become ready for $machine"
+  Show-LabVmStateDiagnostic $machine
+  throw "VM $machine did not become SSH-ready (powered off / boot failed). Run: vagrant up $machine"
 }
 
-function Wait-PeerSsh($machines) {
+function Wait-PeerSsh($machines, [int]$timeoutSeconds = 90) {
   if (@($machines).Count -lt 2) { return }
   $checks = @(
     @{ machine="node1"; peer="192.168.56.12" },
@@ -308,13 +375,22 @@ function Wait-PeerSsh($machines) {
   )
   foreach ($check in $checks) {
     if ($machines -notcontains $check.machine) { continue }
-    $deadline = (Get-Date).AddSeconds(60)
+    $deadline = (Get-Date).AddSeconds($timeoutSeconds)
     while ((Get-Date) -lt $deadline) {
+      foreach ($machine in @($check.machine, $(if ($check.machine -eq "node1") { "node2" } else { "node1" }))) {
+        if ((Get-LabVmState $machine) -ne "running") {
+          Show-LabVmStateDiagnostic $machine
+          throw "VM $machine did not become SSH-ready (powered off / boot failed). Run: vagrant up $machine"
+        }
+      }
       $result = Invoke-DirectSsh $check.machine "timeout 2 bash -c '</dev/tcp/$($check.peer)/22'"
       if ($result.Code -eq 0) { break }
       Start-Sleep -Seconds 2
     }
-    if ((Get-Date) -ge $deadline) { throw "Peer SSH not ready from $($check.machine) to $($check.peer)" }
+    if ((Get-Date) -ge $deadline) {
+      Show-LabVmStateDiagnostic $check.machine
+      throw "VM $($check.machine) did not become SSH-ready to peer $($check.peer) (powered off / boot failed). Run: vagrant up $($check.machine)"
+    }
   }
 }
 
@@ -355,30 +431,6 @@ function Wait-ServiceReadiness($question, $primary) {
 }
 
 function Restore-BaseSnapshot($machine) {
-  if ($machine -eq "lfcs-rocky1") {
-    $vboxName = Get-VBoxName $machine
-    $info = & $VBoxManage showvminfo $vboxName --machinereadable
-    if ($LASTEXITCODE -ne 0) { throw "VBoxManage showvminfo failed for $vboxName" }
-    $stateLine = $info | Where-Object { $_ -match '^VMState=' } | Select-Object -First 1
-    if ($stateLine -match '"running"') {
-      & $VBoxManage controlvm $vboxName poweroff | Out-Null
-      if ($LASTEXITCODE -ne 0) { throw "VBoxManage poweroff failed for $vboxName" }
-      Start-Sleep -Seconds 3
-    }
-    & $VBoxManage snapshot $vboxName restore base | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "VBoxManage snapshot restore failed for $vboxName" }
-    & $VBoxManage startvm $vboxName --type headless | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "VBoxManage startvm failed for $vboxName" }
-    try {
-      Wait-DirectSsh $machine
-    }
-    catch {
-      Invoke-VagrantReloadNoProvision $machine
-      Wait-DirectSsh $machine
-    }
-    return
-  }
-
   if ($UseVagrantRestore) {
     $rc = Invoke-Vagrant "snapshot" "restore" $machine "base" "--no-provision"
     if ($rc -ne 0) { throw "Vagrant snapshot restore failed for $machine" }
@@ -386,24 +438,29 @@ function Restore-BaseSnapshot($machine) {
   }
 
   $vboxName = Get-VBoxName $machine
-  $info = & $VBoxManage showvminfo $vboxName --machinereadable
-  if ($LASTEXITCODE -ne 0) { throw "VBoxManage showvminfo failed for $vboxName" }
-  $stateLine = $info | Where-Object { $_ -match '^VMState=' } | Select-Object -First 1
-  if ($stateLine -match '"running"') {
-    & $VBoxManage controlvm $vboxName poweroff | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "VBoxManage poweroff failed for $vboxName" }
+  $state = Get-LabVmState $machine
+  if ($state -eq "running") {
+    [void](Invoke-VBoxManageChecked -Operation "VBoxManage poweroff for $vboxName" -Arguments @("controlvm", $vboxName, "poweroff"))
+    $poweroffDeadline = (Get-Date).AddSeconds(30)
+    do {
+      Start-Sleep -Milliseconds 500
+      $state = Get-LabVmState $machine
+    } while ($state -eq "running" -and (Get-Date) -lt $poweroffDeadline)
+    if ($state -eq "running") { throw "VBoxManage poweroff for $vboxName did not complete within 30 seconds" }
   }
-  & $VBoxManage snapshot $vboxName restore base | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "VBoxManage snapshot restore failed for $vboxName" }
-  & $VBoxManage startvm $vboxName --type headless | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "VBoxManage startvm failed for $vboxName" }
-  try {
-    Wait-DirectSsh $machine
+
+  [void](Invoke-VBoxManageChecked -Operation "VBoxManage snapshot restore for $vboxName" -Arguments @("snapshot", $vboxName, "restore", "base") -ShowOutput)
+
+  [void](Invoke-VBoxManageChecked -Operation "VBoxManage startvm for $vboxName" -Arguments @("startvm", $vboxName, "--type", "headless") -ShowOutput)
+
+  Start-Sleep -Seconds 1
+  $state = Get-LabVmState $machine
+  if ($state -ne "running") {
+    Show-LabVmStateDiagnostic $machine
+    throw "VM $machine did not become SSH-ready (powered off / boot failed); VBoxManage reports state '$state'. Run: vagrant up $machine"
   }
-  catch {
-    Invoke-VagrantReloadNoProvision $machine
-    Wait-DirectSsh $machine
-  }
+  Set-LabVmSshForwarding $machine
+  [void](Wait-DirectSsh $machine 90)
 }
 
 function Format-TaskText($question) {
@@ -468,10 +525,6 @@ function Load-Question($question) {
   catch {
     $message = $_.Exception.Message
     Write-Host $message
-    foreach ($target in $machines) {
-      $warning = "VM '$target' is unavailable or not SSH-ready. Run: vagrant up $target"
-      if ($message -ne $warning) { Write-Host $warning }
-    }
     return $false
   }
 }

@@ -4,4 +4,6 @@ if ! virsh dominfo lfcs-op-vm1 >/dev/null 2>&1; then echo "RESULT: FAIL - check 
 if ! virsh dumpxml lfcs-op-vm1 | grep -q '<name>lfcs-op-vm1</name>'; then echo "RESULT: FAIL - check 2 failed: virsh dumpxml lfcs-op-vm1 | grep -q '<name>lfcs-op-vm1</name>'"; exit 1; fi
 if ! virsh pool-info lfcs-op-vm1-pool | grep -q 'State:[[:space:]]*running'; then echo "RESULT: FAIL - check 3 failed: virsh pool-info lfcs-op-vm1-pool | grep -q 'State:[[:space:]]*running'"; exit 1; fi
 if ! virsh pool-info lfcs-op-vm1-pool | grep -q 'Autostart:[[:space:]]*yes'; then echo "RESULT: FAIL - check 4 failed: virsh pool-info lfcs-op-vm1-pool | grep -q 'Autostart:[[:space:]]*yes'"; exit 1; fi
+virsh domstate lfcs-op-vm1 | grep -Eq '^(shut off|shutoff)$' || { echo "RESULT: FAIL - domain must remain powered off"; exit 1; }
+virsh pool-dumpxml lfcs-op-vm1-pool | grep -Fq '<path>/var/lib/libvirt/lfcs-op-vm1-pool</path>' || { echo "RESULT: FAIL - storage pool target path is wrong"; exit 1; }
 echo "RESULT: PASS"

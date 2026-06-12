@@ -7,5 +7,5 @@ distro: ubuntu
 vms: [node1]
 question: |
   Create a root cron entry in /etc/cron.d/lfcs-op-cron15 that runs every 15 minutes and writes the literal text lfcs-op-cron15-ok to /var/tmp/lfcs-op-cron15.stamp.
-  Use a valid /etc/cron.d format with an explicit user field.
+  Use a valid /etc/cron.d format with an explicit user field and set the file mode to 0644.
 hints: ["Files in /etc/cron.d need mode 0644.", "Include the user column."]

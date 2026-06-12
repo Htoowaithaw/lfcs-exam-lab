@@ -7,4 +7,7 @@ fail(){ echo "RESULT: FAIL - $1"; exit 1; }
 findmnt -no OPTIONS /mnt/lfcs-opt2 | tr ',' '\n' | grep -qx 'nosuid' || fail 'mount option is not active'
 awk '$2 == "/mnt/lfcs-opt2" && $3 == "ext4" && $4 ~ /(^|,)nosuid(,|$)/ { found=1 } END { exit !found }' /etc/fstab || fail 'mount option is not persistent for requested mountpoint'
 mount -a || fail 'mount -a failed'
+spec="$(awk '$2=="/mnt/lfcs-opt2" && $3=="ext4" && $4 ~ /(^|,)nosuid(,|$)/ {print $1; exit}' /etc/fstab)"
+[ -n "$spec" ] || fail 'persistent source specification missing'
+[ "$(readlink -f "$(findfs "$spec" 2>/dev/null)")" = '/dev/sdf1' ] || fail 'persistent entry does not reference /dev/sdf1'
 echo "RESULT: PASS"

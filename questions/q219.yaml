@@ -6,5 +6,5 @@ difficulty: hard
 distro: ubuntu
 vms: [node1,node2]
 question: |
-  On node2, serve HTTP on 192.168.56.12:18705 returning PROXY-5-NODE2. On node1, configure nginx to listen on TCP 18805 and reverse proxy to that backend.
+  On node2, serve /lfcs-proxy-5.txt on 192.168.56.12:18705 with the exact content PROXY-5-NODE2. On node1, configure nginx to listen on TCP 18805 and reverse proxy to that backend.
 hints: ["Use nginx proxy_pass.", "Validate with curl against node1."]

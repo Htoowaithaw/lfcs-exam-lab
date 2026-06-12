@@ -6,6 +6,6 @@ difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Create and load an enforcing AppArmor profile for /usr/local/bin/lfcs-op-aa3.
-  The profile must allow basic read-only access and appear in aa-status.
+  Create a syntactically valid enforcing AppArmor profile for /usr/local/bin/lfcs-op-aa3 at /etc/apparmor.d/usr.local.bin.lfcs-op-aa3.
+  Load it so the profile appears in the enforce-mode section of aa-status.
 hints: ["Use apparmor_parser -r.", "Profile names normally follow the executable path."]

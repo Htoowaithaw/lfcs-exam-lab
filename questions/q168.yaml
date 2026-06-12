@@ -6,5 +6,5 @@ difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Write a storage facts report to /root/lfcs-storage-perf1.txt containing lsblk output, df output, and blockdev read-ahead for /dev/sdb.
+  Write a storage facts report to /root/lfcs-storage-perf1.txt with sections labeled exactly LSBLK, DF, and READAHEAD in that order. Put lsblk output under LSBLK, df output under DF, and the numeric result of blockdev --getra /dev/sdb under READAHEAD.
 hints: ["This is an artifact question.", "Use lsblk, df, and blockdev."]

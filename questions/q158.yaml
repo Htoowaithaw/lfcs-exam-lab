@@ -6,5 +6,5 @@ difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Create and mount ext4 filesystem /dev/sdf1 at /mnt/lfcs-opt3 with the noexec option active and persistent.
+  Create partition /dev/sdf1 on scratch disk /dev/sdf using any size that fits the disk, format it ext4, and mount it at /mnt/lfcs-opt3 with the noexec option active and persistent.
 hints: ["Use fstab options.", "findmnt should show the option."]

@@ -6,5 +6,5 @@ difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Create an ext4 filesystem labeled fstab2 on /dev/sde1, mount it at /mnt/lfcs-fstab2, add a UUID-based /etc/fstab entry, and ensure mount -a succeeds.
+  Create partition /dev/sde1 on scratch disk /dev/sde using any size that fits the disk, then create an ext4 filesystem labeled fstab2 on /dev/sde1, mount it at /mnt/lfcs-fstab2, add a UUID-based /etc/fstab entry, and ensure mount -a succeeds.
 hints: ["Use UUID rather than a raw device path.", "Validation runs mount -a."]

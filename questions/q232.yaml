@@ -6,5 +6,5 @@ difficulty: hard
 distro: ubuntu
 vms: [node1,node2]
 question: |
-  Configure node2 LDAP directory dc=lfcs,dc=lab with POSIX user ldapuser3 UID 3103. Configure node1 NSS over LDAP so getent passwd ldapuser3 returns that LDAP account.
+  On node2 at ldap://192.168.56.12/, create uid=ldapuser3,ou=People,dc=lfcs,dc=lab as a posixAccount with uidNumber 3103, cn and sn ldapuser3, homeDirectory /home/ldapuser3, and loginShell /bin/bash. On node1, configure /etc/nslcd.conf with that URI and base dc=lfcs,dc=lab, add ldap to the passwd database in /etc/nsswitch.conf, and ensure getent passwd ldapuser3 returns the account.
 hints: ["Node2 is the LDAP server.", "Node1 is the LDAP client."]

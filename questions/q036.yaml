@@ -6,5 +6,5 @@ difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Create /root/q036-users.txt containing account names that use only lowercase letters followed by optional digits.
+  Create /root/q036-users.txt containing account names from /var/tmp/ec-q036/users.txt that use only lowercase letters followed by optional digits.
 hints: ["Use grep basic or extended regex as requested.", "The output must preserve matching line order."]

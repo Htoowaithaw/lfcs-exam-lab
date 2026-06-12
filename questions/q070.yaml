@@ -6,6 +6,6 @@ difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Configure rsyslog so messages tagged lfcs-op-log4-tag are written to /var/log/lfcs-op-log4.log.
+  In /etc/rsyslog.d/lfcs-op-log4.conf, configure rsyslog so messages tagged lfcs-op-log4-tag are written to /var/log/lfcs-op-log4.log.
   Reload rsyslog and record one test message containing LFCS-4 in that file.
 hints: ["A tag match rule can route logger messages.", "Use systemctl reload-or-restart rsyslog."]

@@ -6,5 +6,5 @@ difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Create /root/q039-tickets.txt containing ticket IDs in the form LFCS- followed by exactly four digits.
+  Create /root/q039-tickets.txt containing ticket IDs from /var/tmp/ec-q039/tickets.txt in the form LFCS- followed by exactly four digits.
 hints: ["Use grep basic or extended regex as requested.", "The output must preserve matching line order."]

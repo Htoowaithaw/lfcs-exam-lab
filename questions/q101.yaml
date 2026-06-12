@@ -7,5 +7,5 @@ distro: ubuntu
 vms: [node1]
 question: |
   Create a 2048-bit RSA private key /etc/ssl/private/lfcs-op-tls2.key and a self-signed certificate /etc/ssl/certs/lfcs-op-tls2.crt.
-  The certificate subject common name must be lfcs-op-tls2.lfcs.local and the key/certificate pair must match.
+  Set the private key mode to 0600. The certificate subject common name must be lfcs-op-tls2.lfcs.local and the key/certificate pair must match.
 hints: ["Use openssl req -x509.", "Compare public moduli or public keys."]

@@ -6,5 +6,5 @@ difficulty: hard
 distro: ubuntu
 vms: [node1,node2]
 question: |
-  On node2, export /srv/lfcs-nfs3 to node1 (192.168.56.11) as read-only NFS. On node1, mount it at /mnt/lfcs-nfs3 persistently using node2's host-only IP 192.168.56.12. The file /srv/lfcs-nfs3/data.txt must be readable from node1 and contain NFS-3-OK.
+  On node2, export /srv/lfcs-nfs3 to node1 (192.168.56.11) as read-only NFS. On node1, mount it at /mnt/lfcs-nfs3 persistently using node2's host-only IP 192.168.56.12 with the ro and _netdev fstab options. The file /srv/lfcs-nfs3/data.txt must be readable from node1 and contain NFS-3-OK.
 hints: ["Configure /etc/exports on node2.", "Mount from node1 using the host-only address."]

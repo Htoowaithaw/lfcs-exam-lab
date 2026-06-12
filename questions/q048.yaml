@@ -6,5 +6,5 @@ difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Remove empty directories under /var/tmp/ec-q048/tree, then write the remaining directory names relative to the tree to /root/q048-remaining-dirs.txt sorted.
+  Remove empty directories under /var/tmp/ec-q048/tree, then write the remaining directory names relative to the tree, including . for the tree root, to /root/q048-remaining-dirs.txt sorted.
 hints: ["Use find predicates carefully.", "Sort the output for deterministic validation."]

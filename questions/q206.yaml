@@ -6,5 +6,5 @@ difficulty: hard
 distro: ubuntu
 vms: [node1,node2]
 question: |
-  On node2, export a 64M NBD image named lfcsnbd2 from /srv/lfcsnbd2.img. On node1, connect it as /dev/nbd1, create an ext4 filesystem labeled lfcsnbd2, and mount it at /mnt/lfcsnbd2.
+  On node2, listen on TCP port 10809 and export a 64M NBD image named lfcsnbd2 from /srv/lfcsnbd2.img. On node1, connect it as /dev/nbd1, create an ext4 filesystem labeled lfcsnbd2, and mount it at /mnt/lfcsnbd2.
 hints: ["Use nbd-server on node2.", "Use nbd-client from node1."]

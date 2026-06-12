@@ -6,5 +6,5 @@ difficulty: hard
 distro: ubuntu
 vms: [node1,node2]
 question: |
-  Create user remoteuser2 on node2. From node1, configure key-based SSH to node2 using alias lfcs-node2-2, strict known_hosts, and the host-only IP 192.168.56.12. Non-interactive ssh lfcs-node2-2 true must succeed without a password.
+  Create user remoteuser2 on node2. From node1 root, create private key /root/.ssh/lfcs-q226, authorize it for remoteuser2 on node2, and configure alias lfcs-node2-2 for remoteuser2@192.168.56.12. Set IdentityFile /root/.ssh/lfcs-q226, IdentitiesOnly yes, and StrictHostKeyChecking yes, and add 192.168.56.12 to /root/.ssh/known_hosts. Non-interactive ssh lfcs-node2-2 true must succeed without a password.
 hints: ["Install node1's public key in node2 authorized_keys.", "Use /root/.ssh/config and ssh-keyscan."]

@@ -6,5 +6,5 @@ difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Create partition /dev/sdd1 on scratch disk /dev/sdd, format it ext4 with label lfcsfs2, and do not mount it.
+  Create partition /dev/sdd1 on scratch disk /dev/sdd using any size that fits the disk, format it ext4 with label lfcsfs2, and do not mount it.
 hints: ["Use mkfs.ext4 -L.", "Validate with blkid."]

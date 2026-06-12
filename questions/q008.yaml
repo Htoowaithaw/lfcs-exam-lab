@@ -6,5 +6,5 @@ difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Create a 128 MiB swap file at /swap-lfcs, activate it, and make it persistent in /etc/fstab.
+  Create a 128 MiB swap file at /swap-lfcs with mode 0600, activate it, and make it persistent in /etc/fstab.
 hints: ["Use fallocate or dd, chmod 600, mkswap, swapon.", "Use swapon --show to verify."]

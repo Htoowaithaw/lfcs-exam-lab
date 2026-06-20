@@ -8,4 +8,4 @@ vms: [node1]
 question: |
   Build the staged source tarball /opt/lfcs-src/lfcs-hello-1.0.tar.gz.
   Install the program as /usr/local/bin/lfcs-hello-op3 and make it print LFCS-COMPILED-3.
-hints: ["Extract the tarball under /usr/local/src.", "Use make install with BINARY and MESSAGE variables."]
+hints: ["Extract the tarball under /usr/local/src.", "Adjust the program's printed message in the Makefile, then build and install the binary."]

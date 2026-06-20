@@ -6,5 +6,5 @@ difficulty: hard
 distro: ubuntu
 vms: [node1,node2]
 question: |
-  On node2, serve /lfcs-nat-6.txt on TCP 18606 with the exact content NAT-6-NODE2. On node1, redirect TCP 18606 arriving at 192.168.56.11 to node2 192.168.56.12:18606 using a nat-table chain named LFCSNAT, and enable IPv4 forwarding.
+  On node2, serve /lfcs-nat-6.txt on TCP 18606 with the exact content NAT-6-NODE2. On node1, using a nat-table chain named LFCSNAT, redirect locally originated TCP connections to 192.168.56.11:18606 onward to node2 192.168.56.12:18606, and enable IPv4 forwarding. (A curl from node1 to 192.168.56.11:18606 must reach the node2 backend.)
 hints: ["Use iptables nat rules.", "Validate by curling node1's host-only IP."]

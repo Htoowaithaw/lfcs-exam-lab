@@ -7,5 +7,5 @@ udevadm settle || true
 mkfs.ext4 -F /dev/sdf1
 mkdir -p /mnt/lfcs-opt3
 uuid=$(blkid -s UUID -o value /dev/sdf1)
-echo "UUID=$uuid /mnt/lfcs-opt3 ext4 defaults,noexec 0 2" >> /etc/fstab
+echo "UUID=$uuid /mnt/lfcs-opt3 ext4 defaults,nodev 0 2" >> /etc/fstab
 mount -a

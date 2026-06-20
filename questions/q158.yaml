@@ -1,10 +1,10 @@
 id: q158
-title: "Mount filesystem with noexec"
+title: "Mount filesystem with nodev"
 domain: "Storage"
 topic: "mount options"
 difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Create partition /dev/sdf1 on scratch disk /dev/sdf using any size that fits the disk, format it ext4, and mount it at /mnt/lfcs-opt3 with the noexec option active and persistent.
+  Create partition /dev/sdf1 on scratch disk /dev/sdf using any size that fits the disk, format it ext4, and mount it at /mnt/lfcs-opt3 with the nodev option active and persistent.
 hints: ["Use fstab options.", "findmnt should show the option."]

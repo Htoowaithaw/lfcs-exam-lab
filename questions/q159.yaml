@@ -1,10 +1,10 @@
 id: q159
-title: "Mount filesystem with nosuid"
+title: "Mount filesystem with noatime"
 domain: "Storage"
 topic: "mount options"
 difficulty: medium
 distro: ubuntu
 vms: [node1]
 question: |
-  Create partition /dev/sdf1 on scratch disk /dev/sdf using any size that fits the disk, format it ext4, and mount it at /mnt/lfcs-opt4 with the nosuid option active and persistent.
+  Create partition /dev/sdf1 on scratch disk /dev/sdf using any size that fits the disk, format it ext4, and mount it at /mnt/lfcs-opt4 with the noatime option active and persistent.
 hints: ["Use fstab options.", "findmnt should show the option."]

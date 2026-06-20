@@ -2,7 +2,7 @@ id: q109
 title: "Add hostname resolution for lfcs-host5.example"
 domain: "Networking"
 topic: "IPv4/IPv6 + hostname resolution"
-difficulty: medium
+difficulty: easy
 distro: ubuntu
 vms: [node1]
 question: |

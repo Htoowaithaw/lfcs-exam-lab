@@ -23,6 +23,41 @@ $SshCachePath = Join-Path $LabRoot ".ssh-cache.json"
 $VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 $UseVagrantRestore = $false
 
+# ─── Terminal color helpers ────────────────────────────────────────────────────
+$ESC = [char]27
+function Cs($codes, $text) { "$ESC[${codes}m$text$ESC[0m" }
+function Status-Badge($status) {
+  switch ($status) {
+    "pass"      { return (Cs '1;92' ' PASS ') }
+    "fail"      { return (Cs '1;91' ' FAIL ') }
+    "attempted" { return (Cs '33'   ' ···· ') }
+    default     { return (Cs '90'   '  NEW ') }
+  }
+}
+function Diff-Badge($diff) {
+  if (!$diff) { return '' }
+  switch ($diff.ToLower()) {
+    "easy"   { return (Cs '32' $diff) }
+    "medium" { return (Cs '33' $diff) }
+    "hard"   { return (Cs '31' $diff) }
+    default  { return $diff }
+  }
+}
+function Exam-Result-Badge($result) {
+  switch ($result) {
+    "PASS" { return (Cs '1;92' 'PASS') }
+    "FAIL" { return (Cs '1;91' 'FAIL') }
+    default { return (Cs '90' '----') }
+  }
+}
+function Show-SectionHeader($title, $sub = "") {
+  Write-Host ""
+  Write-Host (Cs '1;96' "  $title")
+  if ($sub) { Write-Host "  $sub" }
+  Write-Host (Cs '90' ('─' * 60))
+}
+# ──────────────────────────────────────────────────────────────────────────────
+
 function ConvertTo-Hashtable($obj) {
   $hash = @{}
   if ($null -eq $obj) { return $hash }
@@ -235,21 +270,20 @@ function Invoke-InteractiveSsh($machine) {
     "-p", $info.Port,
     "$($info.User)@$($info.HostName)"
   )
-  Write-Host ("SSH command: ssh {0}" -f ($sshArgs -join " "))
-  # Launch the interactive shell in its own console window. Running ssh -t directly
-  # inside this script's console is unreliable on some Windows terminals (the PTY
-  # hand-off can hang). A dedicated window always gets a clean console.
-  Write-Host "Opening an SSH window for $machine. Solve the task there, type 'exit' to close it, then return here and press [v] to validate."
+  Write-Host (Cs '90' "  ssh $($sshArgs -join ' ')")
+  Write-Host ""
+  Write-Host "  $(Cs '1;96' "Opening SSH → $machine")  $(Cs '90' "· type 'exit' to return, then press [v] to validate")"
+  # SSH in a dedicated window avoids PTY hand-off hangs on Windows consoles.
   try {
     $proc = Start-Process -FilePath "ssh" -ArgumentList $sshArgs -Wait -PassThru
-    if ($proc.ExitCode -ne 0) { Write-Host "SSH window exited with code $($proc.ExitCode)" }
+    if ($proc.ExitCode -ne 0) { Write-Host (Cs '91' "  SSH window exited with code $($proc.ExitCode)") }
   } catch {
-    Write-Host "Could not open SSH window: $($_.Exception.Message)"
-    Write-Host "Manual fallback - run this in a new PowerShell window:"
-    Write-Host ("ssh {0}" -f ($sshArgs -join " "))
-    Read-Host "Press Enter when done"
+    Write-Host (Cs '91' "  Could not open SSH window: $($_.Exception.Message)")
+    Write-Host (Cs '93' "  Manual fallback — paste into a new PowerShell window:")
+    Write-Host (Cs '97' "  ssh $($sshArgs -join ' ')")
+    Read-Host "  Press Enter when done"
   }
-  Write-Host "Task is saved to /root/TASK.md on $machine."
+  Write-Host (Cs '90' "  Task saved at /root/TASK.md on $machine")
 }
 
 function Select-SshMachine($question) {
@@ -509,7 +543,7 @@ function Load-Question($question) {
       }
     }
     foreach ($target in $machines) {
-      Write-Host "Restoring $target base snapshot..."
+      Write-Host (Cs '90' "  Restoring $target base snapshot...")
       Restore-BaseSnapshot $target
     }
     Wait-PeerSsh $machines
@@ -517,12 +551,12 @@ function Load-Question($question) {
       $machineScript = Join-Path $LabRoot "inject/$qid.$target.sh"
       $defaultScript = Join-Path $LabRoot "inject/$qid.sh"
       if (Test-Path $machineScript) {
-        Write-Host "Injecting $qid on $target..."
+        Write-Host (Cs '90' "  Injecting $qid on $target...")
         $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.$target.sh"
         $result.Output | ForEach-Object { Write-Host $_ }
         if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
       } elseif ($machines.Count -eq 1 -and (Test-Path $defaultScript)) {
-        Write-Host "Injecting $qid..."
+        Write-Host (Cs '90' "  Injecting $qid...")
         $result = Invoke-DirectSsh $target "sudo bash /vagrant/inject/$qid.sh"
         $result.Output | ForEach-Object { Write-Host $_ }
         if ($result.Code -ne 0) { throw "Inject failed for $qid on $target" }
@@ -547,7 +581,11 @@ function Validate-Question($question) {
   $machines = @(Get-QuestionMachines $question)
   if ($machines.Count -gt 1) { Wait-ServiceReadiness $question $target }
   $result = Invoke-DirectSsh $target "sudo bash /vagrant/validate/$qid.sh"
-  $result.Output | ForEach-Object { Write-Host $_ }
+  foreach ($line in $result.Output) {
+    if ($line -match '^RESULT:\s*PASS') { Write-Host (Cs '1;92' $line) }
+    elseif ($line -match '^RESULT:\s*FAIL') { Write-Host (Cs '1;91' $line) }
+    else { Write-Host $line }
+  }
   $status = if ($result.Code -eq 0) { "pass" } else { "fail" }
   Update-Progress $qid $status $true
   return $result.Code
@@ -583,16 +621,28 @@ function Show-QuestionMenu {
   if ($questions.Count -eq 0) {
     throw "No questions found under $(Join-Path $LabRoot 'questions')"
   }
+  $nPass  = @($progress.Keys | Where-Object { $progress[$_].status -eq "pass" }).Count
+  $nFail  = @($progress.Keys | Where-Object { $progress[$_].status -eq "fail" }).Count
+  $nTried = @($progress.Keys | Where-Object { $progress[$_].status -eq "attempted" }).Count
+  $nNew   = $questions.Count - $nPass - $nFail - $nTried
+  $passStr  = Cs '1;92' "$nPass passed"
+  $failStr  = Cs '1;91' "$nFail failed"
+  $triedStr = Cs '93' "$nTried in progress"
+  $newStr   = Cs '90' "$nNew new"
+  Show-SectionHeader "LFCS Practice — $($questions.Count) questions" "$passStr  $failStr  $triedStr  $newStr"
   Write-Host ""
-  Write-Host "LFCS Practice Questions ($($questions.Count))"
-  Write-Host "=============================="
   for ($i = 0; $i -lt $questions.Count; $i++) {
-    $q = $questions[$i]
-    $status = if ($progress.ContainsKey($q.id)) { $progress[$q.id].status } else { "new" }
+    $q        = $questions[$i]
+    $status   = if ($progress.ContainsKey($q.id)) { $progress[$q.id].status } else { "new" }
     $attempts = if ($progress.ContainsKey($q.id)) { $progress[$q.id].attempts } else { 0 }
-    Write-Host ("{0,3}. {1} [{2}, attempts={3}] - {4} ({5})" -f ($i + 1), $q.id, $status, $attempts, $q.title, $q.domain)
+    $badge    = Status-Badge $status
+    $diff     = Diff-Badge $q.difficulty
+    $num      = "{0,3}." -f ($i + 1)
+    $tries    = Cs '90' "· $attempts tries"
+    Write-Host "$num $(Cs '97' $q.id)  $badge  $($q.title)  $(Cs '36' $q.domain)  $(Cs '90' '·') $diff  $tries"
   }
-  Write-Host " q. quit"
+  Write-Host ""
+  Write-Host "  $(Cs '90' '[q]') quit"
   return $questions
 }
 
@@ -630,21 +680,26 @@ function Start-PracticeMode {
 
     while ($true) {
       Clear-Host
-      Write-Host "$($current.id): $($current.title)"
-      Write-Host "Domain: $($current.domain) | Difficulty: $($current.difficulty) | Targets: $((Get-QuestionMachines $current) -join ',')"
+      $targets = (Get-QuestionMachines $current) -join ', '
+      $diff    = Diff-Badge $current.difficulty
+      Write-Host ""
+      Write-Host "  $(Cs '1;97' "$($current.id): $($current.title)")"
+      Write-Host "  $(Cs '36' $current.domain)  $(Cs '90' '·') $diff  $(Cs '90' "· $targets")"
+      Write-Host (Cs '90' ('─' * 60))
       Write-Host ""
       Write-Host $current.question
       if ($showHints) {
         Write-Host ""
-        Write-Host "Hints:"
-        $current.hints | ForEach-Object { Write-Host " - $_" }
+        Write-Host (Cs '93' "  Hints:")
+        $current.hints | ForEach-Object { Write-Host (Cs '90' "   · $_") }
       }
       Write-Host ""
-      Write-Host "[v] validate  [s] ssh  [t] task  [r] reload/reset  [h] toggle hints  [q] question menu"
-      $action = Read-Host "Action"
-      if ($action -eq "v") { [void](Validate-Question $current); Read-Host "Press Enter" }
+      Write-Host (Cs '90' ('─' * 60))
+      Write-Host "  $(Cs '1;97' '[v]') validate  $(Cs '1;97' '[s]') ssh  $(Cs '1;97' '[t]') task  $(Cs '1;97' '[r]') reload  $(Cs '1;97' '[h]') hints  $(Cs '90' '[q]') menu"
+      $action = Read-Host "  Action"
+      if ($action -eq "v") { Write-Host ""; [void](Validate-Question $current); Write-Host ""; Read-Host "  Press Enter" }
       elseif ($action -eq "s") { Invoke-InteractiveSsh (Select-SshMachine $current) }
-      elseif ($action -eq "t") { Show-TaskText $current; Read-Host "Press Enter" }
+      elseif ($action -eq "t") { Show-TaskText $current; Read-Host "  Press Enter" }
       elseif ($action -eq "r") { [void](Load-Question $current) }
       elseif ($action -eq "h") { $showHints = !$showHints }
       elseif ($action -eq "q") { break }
@@ -659,15 +714,21 @@ function Select-ExamQuestions($questions) {
 }
 
 function Write-ScoreReport($session) {
+  $resultBadge = if ($session.pass_bool) { Cs '1;92' '  PASS  ' } else { Cs '1;91' '  FAIL  ' }
+  $pct         = $session.percentage
+  $pctColor    = if ($pct -ge $PassThresholdPct) { '1;92' } else { '1;91' }
+  $nFail       = @($session.per_question | Where-Object { $_.result -eq "FAIL" }).Count
+  Show-SectionHeader "Exam Score Report"
   Write-Host ""
-  Write-Host "Exam Score Report"
-  Write-Host "================="
-  Write-Host ("Score: {0}/{1} ({2}%)" -f $session.score, $session.total, $session.percentage)
-  Write-Host ("Result: {0} vs approximate configurable threshold {1}% (not an official LFCS figure)" -f $(if ($session.pass_bool) { "PASS" } else { "FAIL" }), $session.threshold_used)
-  Write-Host ("Time used: {0}s" -f $session.duration_used_sec)
-  Write-Host ("End reason: {0}" -f $session.end_reason)
+  Write-Host "  Result   $resultBadge  $(Cs $pctColor "$pct%")  $(Cs '97' "$($session.score)/$($session.total)") correct  $nFail failed"
+  Write-Host "  $(Cs '90' "Threshold : approx. $($session.threshold_used)% (not an official LFCS figure)")"
+  Write-Host "  $(Cs '90' "Time used : $($session.duration_used_sec)s  ·  End: $($session.end_reason)")"
   Write-Host ""
-  $session.per_question | Format-Table qid,domain,distro,result -AutoSize | Out-Host
+  foreach ($pq in $session.per_question) {
+    $rb = Exam-Result-Badge $pq.result
+    Write-Host "  $rb  $(Cs '97' $pq.qid)  $(Cs '36' $pq.domain)  $(Cs '90' $pq.distro)"
+  }
+  Write-Host ""
 }
 
 function Save-ExamSession($session) {
@@ -725,10 +786,8 @@ function Start-ExamMode {
     end_reason = $null
   }
 
-  Write-Host "Exam Mode"
-  Write-Host "========="
-  Write-Host ("Duration: {0} minutes | Questions: {1} | Threshold: approximate configurable {2}% (not official)" -f $ExamDurationMinutes, $questions.Count, $PassThresholdPct)
-  Write-Host "Warning: re-opening a question reloads it fresh; work is not preserved across switches. Finish before moving on."
+  $examSub = "$(Cs '97' "$($questions.Count) questions")  $(Cs '90' "· ${ExamDurationMinutes}min · threshold ~${PassThresholdPct}% (not official) · re-opening a question resets that VM")"
+  Show-SectionHeader "Exam Mode" $examSub
 
   if ($ExamDurationMinutes -le 0) {
     return Complete-ExamSession $session "timeout" $started $endTs
@@ -752,44 +811,66 @@ function Start-ExamMode {
   while ($true) {
     if ((Get-Date) -ge $endTs) { return Complete-ExamSession $session "timeout" $started $endTs }
     $remaining = Get-RemainingText $endTs
+    $nDone     = @($session.per_question | Where-Object { $_.result -ne "UNVALIDATED" }).Count
+    $nPassSoFar = $session.score
+    $nFailSoFar = @($session.per_question | Where-Object { $_.result -eq "FAIL" }).Count
+    $timerStr  = Cs '93' "  $remaining remaining"
+    $scoreStr  = "$(Cs '1;92' "$nPassSoFar PASS")  $(Cs '1;91' "$nFailSoFar FAIL")  $(Cs '90' "$nDone/$($questions.Count) done")"
+    Clear-Host
+    Show-SectionHeader "Exam Mode —$timerStr" $scoreStr
     Write-Host ""
-    Write-Host "Exam Questions - time remaining $remaining"
     for ($i = 0; $i -lt $questions.Count; $i++) {
-      $q = $questions[$i]
-      Write-Host ("{0,2}. {1} [{2}] - {3} ({4}, {5})" -f ($i + 1), $q.id, $session.per_question[$i].result, $q.title, $q.domain, $(if ($q.distro) { $q.distro } else { "ubuntu" }))
+      $q      = $questions[$i]
+      $rb     = Exam-Result-Badge $session.per_question[$i].result
+      $distro = if ($q.distro) { $q.distro } else { "ubuntu" }
+      $num    = "{0,2}." -f ($i + 1)
+      $dmStr  = Cs '90' "· $distro"
+      Write-Host "  $num $(Cs '97' $q.id)  $rb  $($q.title)  $(Cs '36' $q.domain)  $dmStr"
     }
-    Write-Host " e. end exam"
+    Write-Host ""
+    Write-Host "  $(Cs '90' '[e]') end exam"
     if (@($session.per_question | Where-Object { $_.result -eq "UNVALIDATED" }).Count -eq 0) {
       return Complete-ExamSession $session "completed" $started $endTs
     }
 
-    $choice = Read-Host "Open question"
+    $choice = Read-Host "  Open question #"
     if ($choice -eq "e") { return Complete-ExamSession $session "completed" $started $endTs }
     if (!($choice -as [int]) -or [int]$choice -lt 1 -or [int]$choice -gt $questions.Count) {
-      Write-Host "Invalid choice"
+      Write-Host (Cs '91' "  Invalid choice")
       continue
     }
 
     $idx = [int]$choice - 1
     $current = $questions[$idx]
-    Write-Host "Reload warning: opening $($current.id) restores a fresh state for that VM."
+    Write-Host (Cs '90' "  Opening $($current.id) — VM resets to base snapshot...")
     if (!(Load-Question $current)) {
-      Read-Host "Press Enter"
+      Read-Host "  Press Enter"
       continue
     }
     while ($true) {
       if ((Get-Date) -ge $endTs) { return Complete-ExamSession $session "timeout" $started $endTs }
+      $rem     = Get-RemainingText $endTs
+      $diff    = Diff-Badge $current.difficulty
+      $tgts    = Cs '90' "· $((Get-QuestionMachines $current) -join ', ')"
+      Clear-Host
       Write-Host ""
-      Write-Host "$($current.id): $($current.title) | Remaining $(Get-RemainingText $endTs)"
+      Write-Host "  $(Cs '1;97' "$($current.id): $($current.title)")  $(Cs '93' "  $rem")"
+      Write-Host "  $(Cs '36' $current.domain)  $(Cs '90' '·') $diff  $tgts"
+      Write-Host (Cs '90' ('─' * 60))
+      Write-Host ""
       Write-Host $current.question
-      Write-Host "[v] validate  [s] ssh  [t] task  [b] back to exam list"
-      $action = Read-Host "Action"
+      Write-Host ""
+      Write-Host (Cs '90' ('─' * 60))
+      Write-Host "  $(Cs '1;97' '[v]') validate  $(Cs '1;97' '[s]') ssh  $(Cs '1;97' '[t]') task  $(Cs '90' '[b]') back"
+      $action = Read-Host "  Action"
       if ($action -eq "v") {
+        Write-Host ""
         $rc = Validate-Question $current
         $session.per_question[$idx].result = if ($rc -eq 0) { "PASS" } else { "FAIL" }
+        Write-Host ""
       }
       elseif ($action -eq "s") { Invoke-InteractiveSsh (Select-SshMachine $current) }
-      elseif ($action -eq "t") { Show-TaskText $current; Read-Host "Press Enter" }
+      elseif ($action -eq "t") { Show-TaskText $current; Read-Host "  Press Enter" }
       elseif ($action -eq "b") { break }
     }
   }
@@ -804,12 +885,17 @@ elseif ($Mode -eq "Exam") {
   [void](Start-ExamMode)
 }
 else {
-  Write-Host "LFCS Lab"
-  Write-Host "========"
-  Write-Host "[1] Practice Mode - free navigation, no timer"
-  Write-Host "[2] Exam Mode     - timed, random question set, scored"
-  $choice = Read-Host "Select mode"
+  Clear-Host
+  Write-Host ""
+  Write-Host (Cs '1;96' "  ┌──────────────────────────────────────┐")
+  Write-Host (Cs '1;96' "  │           LFCS Exam Lab               │")
+  Write-Host (Cs '1;96' "  └──────────────────────────────────────┘")
+  Write-Host ""
+  Write-Host "  $(Cs '1;97' '[1]')  $(Cs '97' 'Practice Mode')  $(Cs '90' '· free navigation · no timer · hints available')"
+  Write-Host "  $(Cs '1;97' '[2]')  $(Cs '97' 'Exam Mode')      $(Cs '90' "· timed ${ExamDurationMinutes}min · ${ExamQuestionCount} random questions · scored")"
+  Write-Host ""
+  $choice = Read-Host "  Select mode"
   if ($choice -eq "1") { Start-PracticeMode }
   elseif ($choice -eq "2") { [void](Start-ExamMode) }
-  else { Write-Host "Invalid mode" }
+  else { Write-Host (Cs '91' "  Invalid choice") }
 }

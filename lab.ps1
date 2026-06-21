@@ -224,10 +224,12 @@ function Get-SshInfo($machine) {
 
 function Invoke-InteractiveSsh($machine) {
   $info = Get-SshInfo $machine
+  $knownHosts = if ($IsWindows -or $env:OS -eq "Windows_NT") { "NUL" } else { "/dev/null" }
   Write-Host "Opening SSH shell for $machine. Type 'exit' to return to the lab menu."
   $sshArgs = @(
     "-t",
-    "-o", "StrictHostKeyChecking=accept-new",
+    "-o", "StrictHostKeyChecking=no",
+    "-o", "UserKnownHostsFile=$knownHosts",
     "-o", "PasswordAuthentication=no",
     "-o", "IdentitiesOnly=yes",
     "-i", $info.IdentityFile,

@@ -32,7 +32,9 @@ param(
   [switch]$CheckOnly,
   [switch]$Yes,
   [switch]$Rebuild,
-  [switch]$SkipBuild
+  [switch]$SkipBuild,
+  [switch]$SkipSmoke,
+  [switch]$DisableHyperV
 )
 
 $ErrorActionPreference = "Stop"
@@ -200,6 +202,132 @@ function Detect-HyperVConflict {
   return [pscustomobject]@{ Active = ($reasons.Count -gt 0); Reasons = $reasons }
 }
 
+# ---- actions -----------------------------------------------------------------
+
+function Test-BuildNeeded {
+  $vbox = Get-VBoxManagePath
+  if (!$vbox) { return $true }
+  foreach ($vm in @("lfcs-node1", "lfcs-node2", "lfcs-rocky1")) {
+    $snaps = (& $vbox snapshot $vm list --machinereadable 2>$null) -join "`n"
+    if ($snaps -notmatch 'SnapshotName="base"') { return $true }
+  }
+  return $false
+}
+
+function Request-Elevation {
+  # Relaunch this script in an elevated window, preserving switches.
+  $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-File", $PSCommandPath)
+  foreach ($name in $PSBoundParameters.Keys) {
+    if ($PSBoundParameters[$name] -is [switch] -and $PSBoundParameters[$name]) {
+      $argList += "-$name"
+    }
+  }
+  Write-Host ""
+  Info "This step needs Administrator rights (install software / change Windows features)."
+  if (-not (Ask-YesNo "Relaunch this installer as Administrator now?")) {
+    Warn "Skipped elevation. Re-run from an elevated PowerShell to install tools."
+    return $false
+  }
+  try {
+    Start-Process powershell.exe -Verb RunAs -ArgumentList $argList | Out-Null
+    Info "An elevated window was opened. Continue there; this window can be closed."
+  } catch {
+    Bad "Could not elevate: $($_.Exception.Message)"
+  }
+  return $true
+}
+
+function Install-WithWinget($id, $label) {
+  if (-not (Test-Command "winget")) {
+    Bad "$label is missing and winget is unavailable. Install $label manually, then re-run."
+    return $false
+  }
+  if (-not (Ask-YesNo "Install $label now (winget: $id)?")) {
+    Warn "Skipped installing $label."
+    return $false
+  }
+  Write-Host "  Installing $label via winget..." -ForegroundColor Gray
+  & winget install --id $id -e --source winget --accept-package-agreements --accept-source-agreements
+  if ($LASTEXITCODE -ne 0) {
+    Bad "winget failed for $label (exit $LASTEXITCODE). Install it manually, then re-run."
+    return $false
+  }
+  Ok "$label installed."
+  return $true
+}
+
+function Refresh-Path {
+  $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
+  $user = [Environment]::GetEnvironmentVariable("Path", "User")
+  $env:Path = "$machine;$user"
+}
+
+function Disable-HyperVStack {
+  Write-Host ""
+  Warn "Disabling Hyper-V / Memory Integrity requires a REBOOT and will break Docker Desktop / WSL2."
+  if (-not (Ask-YesNo "Disable the conflicting hypervisor now?" $false)) {
+    Info "Left the hypervisor enabled. VirtualBox 7+ often still works (via Windows Hypervisor Platform)."
+    return $false
+  }
+  if (-not (Check-Admin)) {
+    Bad "Need Administrator rights to change this. Re-run elevated with -DisableHyperV."
+    return $false
+  }
+  try {
+    & bcdedit /set hypervisorlaunchtype off | Out-Null
+    Info "Set bcdedit hypervisorlaunchtype = off."
+    try {
+      dism.exe /Online /Disable-Feature:Microsoft-Hyper-V-All /NoRestart | Out-Null
+      Info "Disabled the Hyper-V Windows feature."
+    } catch { }
+    Warn "REBOOT now, then re-run .\install.ps1 to continue."
+    return $true
+  } catch {
+    Bad "Failed to disable hypervisor: $($_.Exception.Message)"
+    return $false
+  }
+}
+
+function Invoke-Build {
+  Write-Host ""
+  Head "Build VMs"
+  Info "First build downloads ~1.5 GB of images and provisions 3 VMs."
+  Info "Expect roughly 20-45 minutes depending on network and disk speed."
+  if (-not (Ask-YesNo "Start the build now?")) {
+    Warn "Build skipped. Re-run without -CheckOnly when ready."
+    return $false
+  }
+  $setup = Join-Path $LabRoot "setup.ps1"
+  $args = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $setup)
+  if ($Rebuild) { $args += "-Rebuild" }
+  & powershell.exe @args
+  if ($LASTEXITCODE -ne 0) {
+    Bad "Build failed (setup.ps1 exit $LASTEXITCODE). See messages above."
+    return $false
+  }
+  Ok "Build complete; base snapshots saved."
+  return $true
+}
+
+function Invoke-SmokeTest {
+  Write-Host ""
+  Head "Self-verify (smoke test)"
+  Info "Runs one real question (q005) end-to-end: load -> validate-fails -> solve -> validate-passes -> restore."
+  if (-not (Ask-YesNo "Run the self-verify now? (boots a VM briefly)")) {
+    Warn "Smoke test skipped - install is unverified on this machine."
+    return $null
+  }
+  $gate = Join-Path $LabRoot "scripts\run_question_gate.ps1"
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $gate -QuestionIds q005
+  if ($LASTEXITCODE -eq 0) {
+    Ok "VERIFIED: q005 passed load/validate/solve/restore on this machine."
+    return $true
+  }
+  Bad "Self-verify FAILED. The lab is installed but a question did not pass end-to-end."
+  Info "Re-run '.\install.ps1' or check VirtualBox/Vagrant; the readiness report above shows the likely cause."
+  return $false
+}
+
 # ---- verdict -----------------------------------------------------------------
 
 function Show-Verdict {
@@ -232,10 +360,65 @@ if ($CheckOnly) {
 }
 
 if ($verdict -eq 2) {
+  Write-Host ""
+  Write-Host "Resolve the [FAIL] items above, then re-run .\install.ps1" -ForegroundColor Red
   exit 2
 }
 
+# What does this machine still need?
+$needVagrant = -not (Test-Command "vagrant")
+$needVbox    = ($null -eq (Get-VBoxManagePath))
+$conflict    = Detect-HyperVConflict
+$buildNeeded = Test-BuildNeeded
+
+# Elevate up front if an admin action is required and we're not elevated.
+$needsAdmin = $needVagrant -or $needVbox -or ($DisableHyperV)
+if ($needsAdmin -and -not (Check-Admin)) {
+  if (Request-Elevation) { exit 0 }
+}
+
+# 1) Install missing tools.
+if ($needVagrant) { [void](Install-WithWinget "Hashicorp.Vagrant" "Vagrant") }
+if ($needVbox)    { [void](Install-WithWinget "Oracle.VirtualBox" "VirtualBox") }
+if ($needVagrant -or $needVbox) {
+  Refresh-Path
+  if (-not (Test-Command "vagrant") -or ($null -eq (Get-VBoxManagePath))) {
+    Write-Host ""
+    Warn "Vagrant/VirtualBox still not visible in this session."
+    Info "Close this window, open a new PowerShell, and re-run .\install.ps1 (a reboot may be needed after a VirtualBox install)."
+    exit 1
+  }
+}
+
+# 2) Conflicting hypervisor. Only nudge when VirtualBox was freshly installed or
+#    the user explicitly asked; if VBox already works here, leave it alone.
+if ($conflict.Active -and ($DisableHyperV -or $needVbox)) {
+  if (Disable-HyperVStack) { exit 0 }  # rebooted path: user re-runs after restart
+}
+
+# 3) Build (only if base snapshots are missing).
+if ($SkipBuild) {
+  Info "SkipBuild set - not building."
+} elseif ($buildNeeded) {
+  if (-not (Invoke-Build)) { exit 1 }
+} else {
+  Write-Host ""
+  Ok "VMs already built (base snapshots present) - skipping build."
+}
+
+# 4) Self-verify.
+$smoke = $null
+if (-not $SkipSmoke -and -not $SkipBuild) {
+  $smoke = Invoke-SmokeTest
+}
+
+# 5) Done.
 Write-Host ""
-Write-Host "(The install/build steps - tool install, optional Hyper-V toggle, vagrant build -" -ForegroundColor Gray
-Write-Host " are added in the next layer. Preflight is complete and safe to run any time.)" -ForegroundColor Gray
-exit $verdict
+Head "Done"
+if ($smoke -eq $true) {
+  Write-Host "  Setup verified. Start practicing:" -ForegroundColor Green
+} else {
+  Write-Host "  Setup complete. Start practicing:" -ForegroundColor Green
+}
+Write-Host "    .\lfcs.ps1" -ForegroundColor White
+exit 0

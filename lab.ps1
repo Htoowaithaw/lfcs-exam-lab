@@ -225,7 +225,6 @@ function Get-SshInfo($machine) {
 function Invoke-InteractiveSsh($machine) {
   $info = Get-SshInfo $machine
   $knownHosts = if ($IsWindows -or $env:OS -eq "Windows_NT") { "NUL" } else { "/dev/null" }
-  Write-Host "Opening SSH shell for $machine. Type 'exit' to return to the lab menu."
   $sshArgs = @(
     "-t",
     "-o", "StrictHostKeyChecking=no",
@@ -237,9 +236,20 @@ function Invoke-InteractiveSsh($machine) {
     "$($info.User)@$($info.HostName)"
   )
   Write-Host ("SSH command: ssh {0}" -f ($sshArgs -join " "))
-  & ssh @sshArgs
-  if ($LASTEXITCODE -ne 0) { Write-Host "SSH exited with code $LASTEXITCODE" }
-  Write-Host "Task shown above and saved to /root/TASK.md"
+  # Launch the interactive shell in its own console window. Running ssh -t directly
+  # inside this script's console is unreliable on some Windows terminals (the PTY
+  # hand-off can hang). A dedicated window always gets a clean console.
+  Write-Host "Opening an SSH window for $machine. Solve the task there, type 'exit' to close it, then return here and press [v] to validate."
+  try {
+    $proc = Start-Process -FilePath "ssh" -ArgumentList $sshArgs -Wait -PassThru
+    if ($proc.ExitCode -ne 0) { Write-Host "SSH window exited with code $($proc.ExitCode)" }
+  } catch {
+    Write-Host "Could not open SSH window: $($_.Exception.Message)"
+    Write-Host "Manual fallback - run this in a new PowerShell window:"
+    Write-Host ("ssh {0}" -f ($sshArgs -join " "))
+    Read-Host "Press Enter when done"
+  }
+  Write-Host "Task is saved to /root/TASK.md on $machine."
 }
 
 function Select-SshMachine($question) {

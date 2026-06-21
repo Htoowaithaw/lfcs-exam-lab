@@ -23,14 +23,15 @@ $SshCachePath = Join-Path $LabRoot ".ssh-cache.json"
 $VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 $UseVagrantRestore = $false
 
-# ─── Terminal color helpers ────────────────────────────────────────────────────
+# --- Terminal color helpers (ASCII-only source; ANSI codes are ASCII-safe) ------
 $ESC = [char]27
 function Cs($codes, $text) { "$ESC[${codes}m$text$ESC[0m" }
+function Rule { return (Cs '90' ('-' * 60)) }
 function Status-Badge($status) {
   switch ($status) {
     "pass"      { return (Cs '1;92' ' PASS ') }
     "fail"      { return (Cs '1;91' ' FAIL ') }
-    "attempted" { return (Cs '33'   ' ···· ') }
+    "attempted" { return (Cs '33'   ' .... ') }
     default     { return (Cs '90'   '  NEW ') }
   }
 }
@@ -54,9 +55,9 @@ function Show-SectionHeader($title, $sub = "") {
   Write-Host ""
   Write-Host (Cs '1;96' "  $title")
   if ($sub) { Write-Host "  $sub" }
-  Write-Host (Cs '90' ('─' * 60))
+  Write-Host (Rule)
 }
-# ──────────────────────────────────────────────────────────────────────────────
+# --------------------------------------------------------------------------------
 
 function ConvertTo-Hashtable($obj) {
   $hash = @{}
@@ -272,14 +273,14 @@ function Invoke-InteractiveSsh($machine) {
   )
   Write-Host (Cs '90' "  ssh $($sshArgs -join ' ')")
   Write-Host ""
-  Write-Host "  $(Cs '1;96' "Opening SSH → $machine")  $(Cs '90' "· type 'exit' to return, then press [v] to validate")"
+  Write-Host "  $(Cs '1;96' "Opening SSH -> $machine")  $(Cs '90' "| type 'exit' to return, then press [v] to validate")"
   # SSH in a dedicated window avoids PTY hand-off hangs on Windows consoles.
   try {
     $proc = Start-Process -FilePath "ssh" -ArgumentList $sshArgs -Wait -PassThru
     if ($proc.ExitCode -ne 0) { Write-Host (Cs '91' "  SSH window exited with code $($proc.ExitCode)") }
   } catch {
     Write-Host (Cs '91' "  Could not open SSH window: $($_.Exception.Message)")
-    Write-Host (Cs '93' "  Manual fallback — paste into a new PowerShell window:")
+    Write-Host (Cs '93' "  Manual fallback - paste into a new PowerShell window:")
     Write-Host (Cs '97' "  ssh $($sshArgs -join ' ')")
     Read-Host "  Press Enter when done"
   }
@@ -629,7 +630,7 @@ function Show-QuestionMenu {
   $failStr  = Cs '1;91' "$nFail failed"
   $triedStr = Cs '93' "$nTried in progress"
   $newStr   = Cs '90' "$nNew new"
-  Show-SectionHeader "LFCS Practice — $($questions.Count) questions" "$passStr  $failStr  $triedStr  $newStr"
+  Show-SectionHeader "LFCS Practice - $($questions.Count) questions" "$passStr  $failStr  $triedStr  $newStr"
   Write-Host ""
   for ($i = 0; $i -lt $questions.Count; $i++) {
     $q        = $questions[$i]
@@ -638,8 +639,8 @@ function Show-QuestionMenu {
     $badge    = Status-Badge $status
     $diff     = Diff-Badge $q.difficulty
     $num      = "{0,3}." -f ($i + 1)
-    $tries    = Cs '90' "· $attempts tries"
-    Write-Host "$num $(Cs '97' $q.id)  $badge  $($q.title)  $(Cs '36' $q.domain)  $(Cs '90' '·') $diff  $tries"
+    $tries    = Cs '90' "| $attempts tries"
+    Write-Host "$num $(Cs '97' $q.id)  $badge  $($q.title)  $(Cs '36' $q.domain)  $(Cs '90' '|') $diff  $tries"
   }
   Write-Host ""
   Write-Host "  $(Cs '90' '[q]') quit"
@@ -684,17 +685,17 @@ function Start-PracticeMode {
       $diff    = Diff-Badge $current.difficulty
       Write-Host ""
       Write-Host "  $(Cs '1;97' "$($current.id): $($current.title)")"
-      Write-Host "  $(Cs '36' $current.domain)  $(Cs '90' '·') $diff  $(Cs '90' "· $targets")"
-      Write-Host (Cs '90' ('─' * 60))
+      Write-Host "  $(Cs '36' $current.domain)  $(Cs '90' '|') $diff  $(Cs '90' "| $targets")"
+      Write-Host (Rule)
       Write-Host ""
       Write-Host $current.question
       if ($showHints) {
         Write-Host ""
         Write-Host (Cs '93' "  Hints:")
-        $current.hints | ForEach-Object { Write-Host (Cs '90' "   · $_") }
+        $current.hints | ForEach-Object { Write-Host (Cs '90' "   - $_") }
       }
       Write-Host ""
-      Write-Host (Cs '90' ('─' * 60))
+      Write-Host (Rule)
       Write-Host "  $(Cs '1;97' '[v]') validate  $(Cs '1;97' '[s]') ssh  $(Cs '1;97' '[t]') task  $(Cs '1;97' '[r]') reload  $(Cs '1;97' '[h]') hints  $(Cs '90' '[q]') menu"
       $action = Read-Host "  Action"
       if ($action -eq "v") { Write-Host ""; [void](Validate-Question $current); Write-Host ""; Read-Host "  Press Enter" }
@@ -722,7 +723,7 @@ function Write-ScoreReport($session) {
   Write-Host ""
   Write-Host "  Result   $resultBadge  $(Cs $pctColor "$pct%")  $(Cs '97' "$($session.score)/$($session.total)") correct  $nFail failed"
   Write-Host "  $(Cs '90' "Threshold : approx. $($session.threshold_used)% (not an official LFCS figure)")"
-  Write-Host "  $(Cs '90' "Time used : $($session.duration_used_sec)s  ·  End: $($session.end_reason)")"
+  Write-Host "  $(Cs '90' "Time used : $($session.duration_used_sec)s  |  End: $($session.end_reason)")"
   Write-Host ""
   foreach ($pq in $session.per_question) {
     $rb = Exam-Result-Badge $pq.result
@@ -786,7 +787,7 @@ function Start-ExamMode {
     end_reason = $null
   }
 
-  $examSub = "$(Cs '97' "$($questions.Count) questions")  $(Cs '90' "· ${ExamDurationMinutes}min · threshold ~${PassThresholdPct}% (not official) · re-opening a question resets that VM")"
+  $examSub = "$(Cs '97' "$($questions.Count) questions")  $(Cs '90' "| ${ExamDurationMinutes}min | threshold ~${PassThresholdPct}% (not official) | re-opening a question resets that VM")"
   Show-SectionHeader "Exam Mode" $examSub
 
   if ($ExamDurationMinutes -le 0) {
@@ -817,14 +818,14 @@ function Start-ExamMode {
     $timerStr  = Cs '93' "  $remaining remaining"
     $scoreStr  = "$(Cs '1;92' "$nPassSoFar PASS")  $(Cs '1;91' "$nFailSoFar FAIL")  $(Cs '90' "$nDone/$($questions.Count) done")"
     Clear-Host
-    Show-SectionHeader "Exam Mode —$timerStr" $scoreStr
+    Show-SectionHeader "Exam Mode -$timerStr" $scoreStr
     Write-Host ""
     for ($i = 0; $i -lt $questions.Count; $i++) {
       $q      = $questions[$i]
       $rb     = Exam-Result-Badge $session.per_question[$i].result
       $distro = if ($q.distro) { $q.distro } else { "ubuntu" }
       $num    = "{0,2}." -f ($i + 1)
-      $dmStr  = Cs '90' "· $distro"
+      $dmStr  = Cs '90' "| $distro"
       Write-Host "  $num $(Cs '97' $q.id)  $rb  $($q.title)  $(Cs '36' $q.domain)  $dmStr"
     }
     Write-Host ""
@@ -842,7 +843,7 @@ function Start-ExamMode {
 
     $idx = [int]$choice - 1
     $current = $questions[$idx]
-    Write-Host (Cs '90' "  Opening $($current.id) — VM resets to base snapshot...")
+    Write-Host (Cs '90' "  Opening $($current.id) - VM resets to base snapshot...")
     if (!(Load-Question $current)) {
       Read-Host "  Press Enter"
       continue
@@ -851,16 +852,16 @@ function Start-ExamMode {
       if ((Get-Date) -ge $endTs) { return Complete-ExamSession $session "timeout" $started $endTs }
       $rem     = Get-RemainingText $endTs
       $diff    = Diff-Badge $current.difficulty
-      $tgts    = Cs '90' "· $((Get-QuestionMachines $current) -join ', ')"
+      $tgts    = Cs '90' "| $((Get-QuestionMachines $current) -join ', ')"
       Clear-Host
       Write-Host ""
       Write-Host "  $(Cs '1;97' "$($current.id): $($current.title)")  $(Cs '93' "  $rem")"
-      Write-Host "  $(Cs '36' $current.domain)  $(Cs '90' '·') $diff  $tgts"
-      Write-Host (Cs '90' ('─' * 60))
+      Write-Host "  $(Cs '36' $current.domain)  $(Cs '90' '|') $diff  $tgts"
+      Write-Host (Rule)
       Write-Host ""
       Write-Host $current.question
       Write-Host ""
-      Write-Host (Cs '90' ('─' * 60))
+      Write-Host (Rule)
       Write-Host "  $(Cs '1;97' '[v]') validate  $(Cs '1;97' '[s]') ssh  $(Cs '1;97' '[t]') task  $(Cs '90' '[b]') back"
       $action = Read-Host "  Action"
       if ($action -eq "v") {
@@ -887,12 +888,12 @@ elseif ($Mode -eq "Exam") {
 else {
   Clear-Host
   Write-Host ""
-  Write-Host (Cs '1;96' "  ┌──────────────────────────────────────┐")
-  Write-Host (Cs '1;96' "  │           LFCS Exam Lab               │")
-  Write-Host (Cs '1;96' "  └──────────────────────────────────────┘")
+  Write-Host (Cs '1;96' "  +--------------------------------------+")
+  Write-Host (Cs '1;96' "  |           LFCS Exam Lab               |")
+  Write-Host (Cs '1;96' "  +--------------------------------------+")
   Write-Host ""
-  Write-Host "  $(Cs '1;97' '[1]')  $(Cs '97' 'Practice Mode')  $(Cs '90' '· free navigation · no timer · hints available')"
-  Write-Host "  $(Cs '1;97' '[2]')  $(Cs '97' 'Exam Mode')      $(Cs '90' "· timed ${ExamDurationMinutes}min · ${ExamQuestionCount} random questions · scored")"
+  Write-Host "  $(Cs '1;97' '[1]')  $(Cs '97' 'Practice Mode')  $(Cs '90' '| free navigation | no timer | hints available')"
+  Write-Host "  $(Cs '1;97' '[2]')  $(Cs '97' 'Exam Mode')      $(Cs '90' "| timed ${ExamDurationMinutes}min | ${ExamQuestionCount} random questions | scored")"
   Write-Host ""
   $choice = Read-Host "  Select mode"
   if ($choice -eq "1") { Start-PracticeMode }

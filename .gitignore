@@ -4,6 +4,9 @@
 progress.json
 data/exam-sessions.json
 *.box
+__pycache__/
+*.pyc
+NUL
 *.log
 *.tmp
 *-gate-results*.json

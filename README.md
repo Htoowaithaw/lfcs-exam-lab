@@ -11,6 +11,18 @@ ports, filesystems, persistence). It runs **offline** after setup.
 > The repetition is intentional: many questions are close variants of the same operation, so you build the
 > muscle memory that makes the real exam fast.
 
+## Disclaimer
+
+- **This is not an exam dump.** Every task here is **original practice material** written for this lab. It
+  contains no real, leaked, or memorized LFCS exam questions. Brain dumps violate the Linux Foundation's
+  Candidate Agreement — this project is a skills trainer, not a shortcut around it.
+- **No guarantee you'll pass.** This lab builds hands-on skill and speed; it does **not** promise an exam
+  pass. Your result depends on your own study and practice.
+- **Not affiliated.** This is an independent project, **not affiliated with, endorsed by, or sponsored by
+  the Linux Foundation**. "LFCS" and "Linux Foundation Certified System Administrator" are trademarks of the
+  Linux Foundation, used here only to describe what the lab helps you practice for.
+- The exam-mode score and pass threshold are **approximate and unofficial** — not an LFCS score.
+
 ## Quick start
 
 You need an **x86-64** machine (Windows / Linux / Intel Mac) with virtualization enabled. The installer

@@ -1,0 +1,92 @@
+name: CI
+
+# Runs on every push to main and on every pull request.
+#
+# These are SAFE, host-only checks: they validate script logic and the question
+# bank on real Windows / Linux / macOS runners. They do NOT build VMs (GitHub's
+# hosted runners can't run VirtualBox) - the full VM flow is proven per-machine
+# by the installer's self-verify (`lab.py --gate` / run_question_gate.ps1).
+#
+# Note: the runners themselves don't meet the lab's hardware minimums (they have
+# ~7 GB RAM; macOS runners are Apple Silicon), so the preflight is EXPECTED to
+# report "not ready" there. CI therefore checks that each script RUNS TO
+# COMPLETION (reaches its end marker), not that the machine passes preflight.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:   # lets you run it manually from the Actions tab
+
+jobs:
+  # ---- Question bank parses identically everywhere (no VMs needed) ----------
+  parity:
+    name: Question parity (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Parity check (250 questions, domain counts)
+        run: python -m labkit._parity_check
+      - name: Launcher lists questions without VMs
+        run: python lab.py --list
+
+  # ---- Bash launcher/installer are valid + run to completion (Linux+macOS) --
+  shell-lint:
+    name: Shell syntax + preflight (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: bash -n syntax check (host scripts)
+        run: |
+          bash -n install.sh
+          bash -n lfcs.sh
+      - name: Preflight runs to completion (verdict ignored)
+        run: |
+          out="$(bash install.sh --check-only 2>&1 || true)"
+          echo "$out"
+          echo "$out" | grep -q "Check-only mode" \
+            || { echo "::error::install.sh --check-only did not finish"; exit 1; }
+
+  # ---- PowerShell launcher/installer parse + run to completion (Windows) ----
+  powershell-lint:
+    name: PowerShell parse + preflight (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell scripts (catches syntax/encoding breakage)
+        shell: pwsh
+        run: |
+          $files = 'lab.ps1','install.ps1','setup.ps1','lfcs.ps1','scripts/run_question_gate.ps1'
+          $failed = $false
+          foreach ($f in $files) {
+            $errs = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f).Path, [ref]$null, [ref]$errs) | Out-Null
+            if ($errs.Count -gt 0) {
+              $failed = $true
+              Write-Host "PARSE ERRORS in $f :"
+              $errs | ForEach-Object { Write-Host "  $($_.Message)" }
+            } else {
+              Write-Host "OK: $f"
+            }
+          }
+          if ($failed) { exit 1 }
+      - name: Preflight runs to completion (verdict ignored)
+        shell: pwsh
+        run: |
+          $out = pwsh -NoProfile -File install.ps1 -CheckOnly 2>&1 | Out-String
+          Write-Host $out
+          if ($out -notmatch 'Check-only mode') {
+            Write-Host "::error::install.ps1 -CheckOnly did not finish"
+            exit 1
+          }

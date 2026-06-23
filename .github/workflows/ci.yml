@@ -90,3 +90,7 @@ jobs:
             Write-Host "::error::install.ps1 -CheckOnly did not finish"
             exit 1
           }
+          # The preflight's own exit code (0/1/2 = ready/warnings/blocked) leaks into
+          # $LASTEXITCODE; the runner is below the lab's minimums by design, so force
+          # success now that we've confirmed the script ran to completion.
+          exit 0

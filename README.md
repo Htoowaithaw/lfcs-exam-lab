@@ -1,5 +1,7 @@
 # LFCS Exam Lab
 
+[![CI](https://github.com/Htoowaithaw/lfcs-exam-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/Htoowaithaw/lfcs-exam-lab/actions/workflows/ci.yml)
+
 A free, local, hands-on practice lab for the **Linux Foundation Certified System Administrator (LFCS)**
 exam. **250 real tasks** on disposable Linux VMs, with automated validation, a free-navigation **practice
 mode**, and a timed, scored **exam mode**.

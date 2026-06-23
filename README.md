@@ -30,7 +30,7 @@ checks everything first and can install the prerequisites for you.
 
 **Windows (PowerShell):**
 ```powershell
-git clone <repo-url> lfcs-exam-lab
+git clone https://github.com/Htoowaithaw/lfcs-exam-lab.git
 cd lfcs-exam-lab
 .\install.ps1            # preflight -> install Vagrant/VirtualBox -> build VMs -> self-verify
 .\lfcs.ps1              # start practicing
@@ -38,7 +38,7 @@ cd lfcs-exam-lab
 
 **Linux / Intel macOS (bash):**
 ```bash
-git clone <repo-url> lfcs-exam-lab
+git clone https://github.com/Htoowaithaw/lfcs-exam-lab.git
 cd lfcs-exam-lab
 ./install.sh            # preflight -> install Vagrant/VirtualBox -> build VMs -> self-verify
 ./lfcs.sh              # start practicing

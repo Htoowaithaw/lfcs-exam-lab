@@ -192,10 +192,52 @@ verdict() {
 # ---- actions ----------------------------------------------------------------
 need_sudo() { [ "$(id -u)" -ne 0 ] && echo "sudo" || echo ""; }
 
+warn_secureboot() {
+  # VirtualBox needs an unsigned kernel module; Secure Boot blocks it until the
+  # module is signed/enrolled (a reboot + MOK prompt the script can't complete).
+  if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi 'enabled'; then
+    warn "Secure Boot is ENABLED. VirtualBox's kernel module must be signed/enrolled (reboot + MOK prompt)."
+    info "If 'vagrant up' later fails to start a VM, either enroll the module key (mokutil) or disable Secure Boot."
+  fi
+}
+
+install_apt() {  # $1 = sudo
+  local sudo="$1"
+  info "Enabling universe + multiverse and the HashiCorp apt repo (current Vagrant)..."
+  $sudo apt-get update || true
+  $sudo apt-get install -y software-properties-common ca-certificates wget gnupg lsb-release || true
+  $sudo add-apt-repository -y universe   || true
+  $sudo add-apt-repository -y multiverse || true
+  # Ubuntu's 'universe' Vagrant is 2.2.6 and breaks on modern Bento boxes, so use HashiCorp's repo.
+  if [ ! -f /usr/share/keyrings/hashicorp-archive-keyring.gpg ]; then
+    wget -qO- https://apt.releases.hashicorp.com/gpg \
+      | $sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg || true
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+      | $sudo tee /etc/apt/sources.list.d/hashicorp.list >/dev/null || true
+  fi
+  $sudo apt-get update || true
+  $sudo apt-get install -y dkms "linux-headers-$(uname -r)" build-essential || true
+  $sudo apt-get install -y virtualbox vagrant python3
+}
+
+install_dnf() {  # $1 = sudo
+  local sudo="$1"
+  local rel; rel="$(rpm -E %fedora 2>/dev/null)"
+  info "Enabling RPM Fusion (VirtualBox lives there) + the HashiCorp repo..."
+  $sudo dnf install -y \
+    "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${rel}.noarch.rpm" \
+    "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${rel}.noarch.rpm" || true
+  $sudo dnf install -y dnf-plugins-core || true
+  $sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo || true
+  $sudo dnf install -y "kernel-devel-$(uname -r)" kernel-headers dkms gcc make || true
+  $sudo dnf install -y VirtualBox vagrant python3
+}
+
 install_tools() {
   local sudo; sudo="$(need_sudo)"
   if ! have vagrant || [ -z "$VBOXMANAGE" ] || ! have python3; then
     head "Install missing tools"
+    info "VirtualBox needs a kernel module + the right repos; this is the least-portable step."
     case "$PKG" in
       brew)
         ask_yesno "Install missing tools via Homebrew?" && {
@@ -204,22 +246,18 @@ install_tools() {
           have python3   || brew install python
         } ;;
       apt)
-        ask_yesno "Install missing tools via apt (needs sudo)?" && {
-          $sudo apt-get update
-          $sudo apt-get install -y virtualbox vagrant python3
-        } ;;
+        ask_yesno "Install missing tools via apt (needs sudo)?" && { warn_secureboot; install_apt "$sudo"; } ;;
       dnf)
-        ask_yesno "Install missing tools via dnf (needs sudo)?" && {
-          $sudo dnf install -y @virtualization VirtualBox vagrant python3 || \
-          $sudo dnf install -y VirtualBox vagrant python3
-        } ;;
+        ask_yesno "Install missing tools via dnf (needs sudo)?" && { warn_secureboot; install_dnf "$sudo"; } ;;
       *)
-        bad "No package manager available. Install VirtualBox + Vagrant + python3 manually, then re-run."
+        bad "No supported package manager. Install VirtualBox + Vagrant + python3 manually, then re-run."
         return 1 ;;
     esac
     find_vboxmanage
     if ! have vagrant || [ -z "$VBOXMANAGE" ] || ! have python3; then
-      warn "Some tools still missing after install. Check the messages above and re-run."
+      warn "Some tools are still missing after install."
+      info "VirtualBox auto-install can fail (kernel modules / Secure Boot). Install it from"
+      info "https://www.virtualbox.org/wiki/Linux_Downloads , then re-run ./install.sh"
       return 1
     fi
     ok "Tools present."

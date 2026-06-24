@@ -1,0 +1,76 @@
+name: Platform test report
+description: You ran the installer on a clean Linux or Intel-Mac machine - tell us how it went
+title: "[platform] <OS> - worked / partial / failed"
+labels: ["platform-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The Linux and Intel-macOS install paths are written but not yet verified on
+        clean machines. Reports like this are exactly what's needed - thank you!
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux (x86-64)
+        - macOS (Intel / x86-64)
+        - Windows (x86-64)
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version / distro + package manager
+      placeholder: "e.g. Ubuntu 24.04 (apt), Fedora 40 (dnf), macOS 13 Intel (brew)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: result
+    attributes:
+      label: Overall result
+      options:
+        - "Worked end-to-end (installed + built + self-verify passed)"
+        - "Partial (installed but build or self-verify failed)"
+        - "Failed (installer could not complete)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: start-state
+    attributes:
+      label: Starting state of the machine
+      options:
+        - "Bare (no Vagrant, no VirtualBox)"
+        - "Had VirtualBox, no Vagrant"
+        - "Had VirtualBox + Vagrant already"
+    validations:
+      required: true
+
+  - type: textarea
+    id: preflight
+    attributes:
+      label: Preflight output (./install.sh --check-only)
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: gate
+    attributes:
+      label: Self-verify result (lab.py --gate q005)
+      options:
+        - "Pass (q005 PASS/PASS/PASS/PASS)"
+        - "Fail"
+        - "Didn't get that far"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything that broke or needed manual steps?
+      placeholder: "Package names, missing tools, errors during vagrant up, KVM conflicts, etc."

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security issue
+    url: https://github.com/Htoowaithaw/lfcs-exam-lab/blob/main/SECURITY.md
+    about: For anything security-related, please read SECURITY.md first.
+  - name: Setup & usage
+    url: https://github.com/Htoowaithaw/lfcs-exam-lab/blob/main/README.md
+    about: Check the README quickstart and troubleshooting before opening an issue.

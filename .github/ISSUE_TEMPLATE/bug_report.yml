@@ -1,0 +1,111 @@
+name: Bug report
+description: Something in the lab doesn't work (install, launcher, a question, validation)
+title: "[bug] <short summary>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! A few structured details make this fixable fast.
+        Please **do not** paste secrets — the preflight output below is safe to share.
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows (x86-64)
+        - Linux (x86-64)
+        - macOS (Intel / x86-64)
+        - "macOS (Apple Silicon) - note: unsupported by design"
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version / Linux distro
+      placeholder: "e.g. Windows 11 23H2, Ubuntu 24.04, Fedora 40, macOS 13 Intel"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where did it happen?
+      options:
+        - "Installer (install.ps1 / install.sh)"
+        - "Launcher - Practice mode"
+        - "Launcher - Exam mode"
+        - "A specific question (validate/inject/solution)"
+        - "Self-verify / gate (lab.py --gate)"
+        - "Other"
+    validations:
+      required: true
+
+  - type: input
+    id: qid
+    attributes:
+      label: Question id (if a specific question)
+      placeholder: "e.g. q005, q201, qR13"
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+      placeholder: "Describe the actual behaviour and what you expected instead."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run ...
+        2. Open question ...
+        3. Press ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: preflight
+    attributes:
+      label: Preflight output
+      description: "Run `.\\install.ps1 -CheckOnly` (Windows) or `./install.sh --check-only` (Mac/Linux) and paste the whole report. It changes nothing and contains no secrets."
+      render: shell
+
+  - type: input
+    id: versions
+    attributes:
+      label: Vagrant & VirtualBox versions
+      placeholder: "e.g. Vagrant 2.4.9, VirtualBox 7.2.4"
+
+  - type: dropdown
+    id: gate
+    attributes:
+      label: Does the self-verify pass?
+      description: "Run `python3 lab.py --gate q005` (or the Windows gate) and pick the result."
+      options:
+        - "Pass (q005 PASS/PASS/PASS/PASS)"
+        - "Fail"
+        - "Didn't run it"
+        - "N/A"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error output / logs
+      description: "Paste any error messages or relevant log lines."
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this isn't a duplicate
+          required: true
+        - label: I'm not requesting real/leaked exam questions (see the README disclaimer)
+          required: true

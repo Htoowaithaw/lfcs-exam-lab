@@ -24,6 +24,7 @@ ASSUME_YES=0
 REBUILD=0
 SKIP_BUILD=0
 SKIP_SMOKE=0
+FORCE=0
 for arg in "$@"; do
   case "$arg" in
     --check-only) CHECK_ONLY=1 ;;
@@ -31,6 +32,7 @@ for arg in "$@"; do
     --rebuild)    REBUILD=1 ;;
     --skip-build) SKIP_BUILD=1 ;;
     --skip-smoke) SKIP_SMOKE=1 ;;
+    --force)      FORCE=1 ;;     # proceed even if preflight is BLOCKED (advanced/testing)
     -h|--help)    grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $arg"; exit 2 ;;
   esac
@@ -310,8 +312,12 @@ if [ "$CHECK_ONLY" = "1" ]; then
   exit $V
 fi
 if [ "$V" -eq 2 ]; then
-  printf '\n%sResolve the [FAIL] items above, then re-run ./install.sh%s\n' "$C_RED" "$C_OFF"
-  exit 2
+  if [ "$FORCE" = "1" ]; then
+    printf '\n%sPreflight BLOCKED, but --force was given - continuing (the VM build may fail).%s\n' "$C_YEL" "$C_OFF"
+  else
+    printf '\n%sResolve the [FAIL] items above, then re-run ./install.sh (or pass --force to override).%s\n' "$C_RED" "$C_OFF"
+    exit 2
+  fi
 fi
 
 install_tools || exit 1

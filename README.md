@@ -61,7 +61,7 @@ good — you don't have to take our word for it.
 | Platform | Status | Notes |
 |---|---|---|
 | **Windows x86-64** | ✅ Supported — installer + lab self-verified on a Win11 dev machine | VirtualBox 7+ coexists with Hyper-V (slower); installer offers to disable it |
-| **Linux x86-64** | 🧪 Built; not yet verified on a clean machine — feedback/PRs welcome | `apt`/`dnf` install path; needs VT-x/AMD-V and no active KVM guest |
+| **Linux x86-64** | 🟢 Installer verified on Ubuntu 24.04 (repos + current Vagrant 2.4.9 + VirtualBox install cleanly); full VM build still needs a VT-capable host. Fedora/`dnf` path not yet run. | needs VT-x/AMD-V and no active KVM guest |
 | **Intel Mac x86-64** | 🧪 Built; not yet verified on a clean machine — feedback/PRs welcome | `brew` install path |
 | **Apple Silicon Mac (M1/M2/M3/M4)** | ❌ Not supported | VirtualBox cannot run the x86 Ubuntu/Rocky VMs this lab uses; no workaround on ARM |
 

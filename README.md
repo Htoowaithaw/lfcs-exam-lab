@@ -186,8 +186,10 @@ A pass prints `q005 PASS/PASS/PASS/PASS` and exits 0. This is exactly what the i
 
 ## Contributing
 
-Add one question at a time with the four-file pattern above (and the `.node1/.node2` convention from
-`docs/MULTIVM_CONVENTION.md` for two-VM questions). Keep inject scripts network-free and solution-free;
+Add one question at a time with the four-file pattern above. For two-VM questions, use the per-node
+convention: `inject/<qid>.node1.sh`, `inject/<qid>.node2.sh`, `solution/<qid>.node1.sh`,
+`solution/<qid>.node2.sh` (validation runs on the primary node and checks both). Keep inject scripts
+network-free and solution-free;
 validators must check the real end state (exact values, ownership, modes, persistence, services, ports,
 routes, filesystems, and any "only/exactly" constraints).
 

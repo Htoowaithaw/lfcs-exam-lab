@@ -38,3 +38,12 @@ phase7-*.log
 phase7-*.err
 phase7-*.txt
 .tmp-q*.pub
+
+# Internal process / handoff docs - kept local for development, never published
+/AUDIT-FINDINGS.md
+/CLAUDE.md
+/docs/CHANGELOG-claude.md
+/docs/HANDOFF.md
+/docs/MULTIVM_CONVENTION.md
+/docs/QUESTION_AUDIT.md
+/docs/ROADMAP.md

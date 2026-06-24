@@ -199,6 +199,11 @@ Gate before committing — it must show load PASS, unsolved FAIL, solved PASS, r
 python3 lab.py --gate q234
 ```
 
-**Platform testing help wanted:** the Linux and Intel-macOS install paths are written but not yet verified
-on clean machines. If you run `install.sh` on a fresh Linux or Intel Mac, please open an issue with your
-`./install.sh --check-only` output and whether the self-verify passed.
+**Platform testing help wanted:** the full Linux end-to-end (on a VT-capable host) and the Intel-macOS
+install path are not yet verified on clean machines. If you run `install.sh` on a fresh Linux or Intel Mac,
+please open an issue with your `./install.sh --check-only` output and whether the self-verify passed.
+
+## License
+
+Released under the [MIT License](LICENSE) — free to use, modify, and share.
+"LFCS" is a trademark of the Linux Foundation; see the disclaimer above.

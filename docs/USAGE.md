@@ -23,7 +23,7 @@ From the repo folder:
 
 You land on the mode menu:
 
-![Mode menu](images/01-mode-menu.png)
+![Mode menu](images/01-mode-menu.svg)
 
 ```
   +--------------------------------------+
@@ -47,7 +47,7 @@ You land on the mode menu:
 
 Type `1`. The question list appears:
 
-![Practice question list](images/02-practice-list.png)
+![Practice question list](images/02-practice-list.svg)
 
 ```
   LFCS Practice - 250 questions
@@ -68,7 +68,7 @@ Each row shows: **number** · **question id** · **status** (`NEW` / `PASS` / `F
 
 The lab restores that VM to a clean snapshot, sets up the starting state, and shows the task:
 
-![Question view](images/03-question-view.png)
+![Question view](images/03-question-view.svg)
 
 ```
   q005: Configure local hostname resolution
@@ -97,7 +97,7 @@ The action bar is your toolbox:
 
 Pressing `s` opens a shell **inside the VM** (a new window on Windows; inline on macOS/Linux):
 
-![SSH session in the VM](images/04-ssh-session.png)
+![SSH session in the VM](images/04-ssh-session.svg)
 
 ```
 vagrant@lfcs-node1:~$ sudo bash -c 'echo "10.10.10.50 repo.lfcs.local" >> /etc/hosts'
@@ -115,7 +115,7 @@ Type `exit` when you're done to return to the lab.
 
 Press `v`. The lab runs the official validator against the VM's real end state:
 
-![Validation passed](images/05-validate-pass.png)
+![Validation passed](images/05-validate-pass.svg)
 
 ```
 RESULT: PASS
@@ -132,7 +132,7 @@ Press `r` any time to wipe the VM back to a clean start and redo the question. P
 
 Back at the main menu, choose `2`. You get a **timed, scored** random set:
 
-![Exam question list](images/06-exam-list.png)
+![Exam question list](images/06-exam-list.svg)
 
 ```
   Exam Mode -   119:42 remaining
@@ -152,7 +152,7 @@ Back at the main menu, choose `2`. You get a **timed, scored** random set:
 
 When you finish (or time runs out) you get a **score report**:
 
-![Exam score report](images/07-score-report.png)
+![Exam score report](images/07-score-report.svg)
 
 ```
   Exam Score Report

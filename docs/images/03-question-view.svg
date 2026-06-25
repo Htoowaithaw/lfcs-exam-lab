@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 252" xml:space="preserve" font-family="'Cascadia Code','Consolas','DejaVu Sans Mono','Menlo',monospace" font-size="13">
+  <rect x="1" y="1" width="798" height="250" rx="10" fill="#1b1e24" stroke="#3a3f4b"/>
+  <circle cx="22" cy="19" r="5" fill="#ff5f56"/>
+  <circle cx="40" cy="19" r="5" fill="#ffbd2e"/>
+  <circle cx="58" cy="19" r="5" fill="#27c93f"/>
+  <text x="400" y="23" fill="#6e7681" font-size="12" text-anchor="middle">LFCS Exam Lab — question</text>
+  <line x1="12" y1="36" x2="788" y2="36" stroke="#2a2e37"/>
+  <text x="20" y="62" fill="#ffffff" font-weight="bold">  q005: Configure local hostname resolution</text>
+  <text x="20" y="84"><tspan fill="#c9d1d9">  </tspan><tspan fill="#56b6c2">Networking</tspan><tspan fill="#6e7681">  | </tspan><tspan fill="#56d364">easy</tspan><tspan fill="#6e7681">  | node1</tspan></text>
+  <text x="20" y="98" fill="#3a3f4b">  ------------------------------------------------------------</text>
+  <text x="20" y="130" fill="#c9d1d9">  Configure local name resolution so repo.lfcs.local resolves to 10.10.10.50 using /etc/hosts.</text>
+  <text x="20" y="164" fill="#3a3f4b">  ------------------------------------------------------------</text>
+  <text x="20" y="194"><tspan fill="#c9d1d9">  </tspan><tspan fill="#ffffff" font-weight="bold">[v]</tspan><tspan fill="#c9d1d9"> validate  </tspan><tspan fill="#ffffff" font-weight="bold">[s]</tspan><tspan fill="#c9d1d9"> ssh  </tspan><tspan fill="#ffffff" font-weight="bold">[t]</tspan><tspan fill="#c9d1d9"> task  </tspan><tspan fill="#ffffff" font-weight="bold">[r]</tspan><tspan fill="#c9d1d9"> reload  </tspan><tspan fill="#ffffff" font-weight="bold">[h]</tspan><tspan fill="#c9d1d9"> hints  </tspan><tspan fill="#6e7681">[q] menu</tspan></text>
+  <text x="20" y="222" fill="#c9d1d9">  Action: </text>
+  <rect x="90" y="211" width="8" height="14" fill="#c9d1d9" opacity="0.75"/>
+</svg>

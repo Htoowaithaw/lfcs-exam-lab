@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 322" xml:space="preserve" font-family="'Cascadia Code','Consolas','DejaVu Sans Mono','Menlo',monospace" font-size="13">
+  <rect x="1" y="1" width="758" height="320" rx="10" fill="#1b1e24" stroke="#3a3f4b"/>
+  <circle cx="22" cy="19" r="5" fill="#ff5f56"/>
+  <circle cx="40" cy="19" r="5" fill="#ffbd2e"/>
+  <circle cx="58" cy="19" r="5" fill="#27c93f"/>
+  <text x="380" y="23" fill="#6e7681" font-size="12" text-anchor="middle">LFCS Exam Lab — practice</text>
+  <line x1="12" y1="36" x2="748" y2="36" stroke="#2a2e37"/>
+  <text x="20" y="60" fill="#56d4dd" font-weight="bold">  LFCS Practice - 250 questions</text>
+  <text x="20" y="82"><tspan fill="#c9d1d9">  </tspan><tspan fill="#56d364">2 passed</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#f85149">0 failed</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#e3b341">1 in progress</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#6e7681">247 new</tspan></text>
+  <text x="20" y="96" fill="#3a3f4b">  ------------------------------------------------------------</text>
+  <text x="20" y="126"><tspan fill="#c9d1d9">  1. </tspan><tspan fill="#ffffff">q001</tspan><tspan fill="#6e7681">    NEW   </tspan><tspan fill="#c9d1d9">Archive selected log files  </tspan><tspan fill="#56b6c2">Essential Commands</tspan><tspan fill="#6e7681">  | </tspan><tspan fill="#56d364">easy</tspan><tspan fill="#6e7681">  | 0 tries</tspan></text>
+  <text x="20" y="148"><tspan fill="#c9d1d9">  2. </tspan><tspan fill="#ffffff">q002</tspan><tspan fill="#6e7681">    NEW   </tspan><tspan fill="#c9d1d9">Set permissions and create a symlink  </tspan><tspan fill="#56b6c2">Essential Commands</tspan><tspan fill="#6e7681">  | </tspan><tspan fill="#56d364">easy</tspan><tspan fill="#6e7681">  | 0 tries</tspan></text>
+  <text x="20" y="170"><tspan fill="#c9d1d9">  3. </tspan><tspan fill="#ffffff">q003</tspan><tspan fill="#6e7681">    NEW   </tspan><tspan fill="#c9d1d9">Fix and enable a systemd service  </tspan><tspan fill="#56b6c2">Operations &amp; Deployment</tspan><tspan fill="#6e7681">  | </tspan><tspan fill="#e3b341">medium</tspan><tspan fill="#6e7681">  | 0 tries</tspan></text>
+  <text x="20" y="192"><tspan fill="#c9d1d9">  4. </tspan><tspan fill="#ffffff">q004</tspan><tspan fill="#6e7681">    NEW   </tspan><tspan fill="#c9d1d9">Schedule a root cron job  </tspan><tspan fill="#56b6c2">Operations &amp; Deployment</tspan><tspan fill="#6e7681">  | </tspan><tspan fill="#56d364">easy</tspan><tspan fill="#6e7681">  | 0 tries</tspan></text>
+  <text x="20" y="214"><tspan fill="#c9d1d9">  5. </tspan><tspan fill="#ffffff">q005</tspan><tspan fill="#56d364">   PASS   </tspan><tspan fill="#c9d1d9">Configure local hostname resolution  </tspan><tspan fill="#56b6c2">Networking</tspan><tspan fill="#6e7681">  | </tspan><tspan fill="#56d364">easy</tspan><tspan fill="#6e7681">  | 2 tries</tspan></text>
+  <text x="20" y="236"><tspan fill="#c9d1d9">  6. </tspan><tspan fill="#ffffff">q006</tspan><tspan fill="#6e7681">    NEW   </tspan><tspan fill="#c9d1d9">Add a static route  </tspan><tspan fill="#56b6c2">Networking</tspan><tspan fill="#6e7681">  | </tspan><tspan fill="#e3b341">medium</tspan><tspan fill="#6e7681">  | 0 tries</tspan></text>
+  <text x="20" y="258"><tspan fill="#c9d1d9">  7. </tspan><tspan fill="#ffffff">q007</tspan><tspan fill="#6e7681">    NEW   </tspan><tspan fill="#c9d1d9">Create and mount an ext4 filesystem  </tspan><tspan fill="#56b6c2">Storage</tspan><tspan fill="#6e7681">  | </tspan><tspan fill="#e3b341">medium</tspan><tspan fill="#6e7681">  | 0 tries</tspan></text>
+  <text x="20" y="294" fill="#6e7681">  [q] quit</text>
+</svg>

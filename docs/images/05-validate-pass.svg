@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 192" xml:space="preserve" font-family="'Cascadia Code','Consolas','DejaVu Sans Mono','Menlo',monospace" font-size="13">
+  <rect x="1" y="1" width="658" height="190" rx="10" fill="#1b1e24" stroke="#3a3f4b"/>
+  <circle cx="22" cy="19" r="5" fill="#ff5f56"/>
+  <circle cx="40" cy="19" r="5" fill="#ffbd2e"/>
+  <circle cx="58" cy="19" r="5" fill="#27c93f"/>
+  <text x="330" y="23" fill="#6e7681" font-size="12" text-anchor="middle">LFCS Exam Lab — validate</text>
+  <line x1="12" y1="36" x2="648" y2="36" stroke="#2a2e37"/>
+  <text x="20" y="62"><tspan fill="#ffffff" font-weight="bold">[v]</tspan><tspan fill="#c9d1d9"> validate  </tspan><tspan fill="#ffffff" font-weight="bold">[s]</tspan><tspan fill="#c9d1d9"> ssh  </tspan><tspan fill="#ffffff" font-weight="bold">[t]</tspan><tspan fill="#c9d1d9"> task  </tspan><tspan fill="#6e7681">[q] menu</tspan></text>
+  <text x="20" y="84"><tspan fill="#c9d1d9">  Action: </tspan><tspan fill="#ffffff">v</tspan></text>
+  <text x="20" y="124" fill="#56d364" font-size="17" font-weight="bold">RESULT: PASS</text>
+  <text x="20" y="160" fill="#6e7681">  Press Enter</text>
+</svg>

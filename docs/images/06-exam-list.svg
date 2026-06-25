@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 312" xml:space="preserve" font-family="'Cascadia Code','Consolas','DejaVu Sans Mono','Menlo',monospace" font-size="13">
+  <rect x="1" y="1" width="718" height="310" rx="10" fill="#1b1e24" stroke="#3a3f4b"/>
+  <circle cx="22" cy="19" r="5" fill="#ff5f56"/>
+  <circle cx="40" cy="19" r="5" fill="#ffbd2e"/>
+  <circle cx="58" cy="19" r="5" fill="#27c93f"/>
+  <text x="360" y="23" fill="#6e7681" font-size="12" text-anchor="middle">LFCS Exam Lab — exam</text>
+  <line x1="12" y1="36" x2="708" y2="36" stroke="#2a2e37"/>
+  <text x="20" y="60"><tspan fill="#56d4dd" font-weight="bold">  Exam Mode - </tspan><tspan fill="#e3b341">  119:42 remaining</tspan></text>
+  <text x="20" y="82"><tspan fill="#56d364">  0 PASS</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#f85149">0 FAIL</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#6e7681">0/20 done</tspan></text>
+  <text x="20" y="96" fill="#3a3f4b">  ------------------------------------------------------------</text>
+  <text x="20" y="126"><tspan fill="#c9d1d9">   1. </tspan><tspan fill="#ffffff">q192</tspan><tspan fill="#6e7681">    ----  </tspan><tspan fill="#c9d1d9">Grant limited sudo to sudoer2  </tspan><tspan fill="#56b6c2">Users and Groups</tspan><tspan fill="#6e7681">  | ubuntu</tspan></text>
+  <text x="20" y="148"><tspan fill="#c9d1d9">   2. </tspan><tspan fill="#ffffff">q225</tspan><tspan fill="#6e7681">    ----  </tspan><tspan fill="#c9d1d9">Configure key SSH node1 to node2 1  </tspan><tspan fill="#56b6c2">Networking</tspan><tspan fill="#6e7681">  | ubuntu</tspan></text>
+  <text x="20" y="170"><tspan fill="#c9d1d9">   3. </tspan><tspan fill="#ffffff">q038</tspan><tspan fill="#6e7681">    ----  </tspan><tspan fill="#c9d1d9">Match production hosts  </tspan><tspan fill="#56b6c2">Essential Commands</tspan><tspan fill="#6e7681">  | ubuntu</tspan></text>
+  <text x="20" y="192"><tspan fill="#c9d1d9">   4. </tspan><tspan fill="#ffffff">q062</tspan><tspan fill="#6e7681">    ----  </tspan><tspan fill="#c9d1d9">Repair lfcs-op-svc4 systemd service  </tspan><tspan fill="#56b6c2">Operations &amp; Deployment</tspan><tspan fill="#6e7681">  | ubuntu</tspan></text>
+  <text x="20" y="214"><tspan fill="#c9d1d9">   5. </tspan><tspan fill="#ffffff">q202</tspan><tspan fill="#6e7681">    ----  </tspan><tspan fill="#c9d1d9">Mount NFS export 4  </tspan><tspan fill="#56b6c2">Storage</tspan><tspan fill="#6e7681">  | ubuntu</tspan></text>
+  <text x="20" y="236"><tspan fill="#c9d1d9">   6. </tspan><tspan fill="#ffffff">q140</tspan><tspan fill="#6e7681">    ----  </tspan><tspan fill="#c9d1d9">Create scratch partition 128M  </tspan><tspan fill="#56b6c2">Storage</tspan><tspan fill="#6e7681">  | ubuntu</tspan></text>
+  <text x="20" y="270" fill="#6e7681">  [e] end exam</text>
+  <text x="20" y="294" fill="#c9d1d9">  Open question #: </text>
+  <rect x="165" y="283" width="8" height="14" fill="#c9d1d9" opacity="0.75"/>
+</svg>

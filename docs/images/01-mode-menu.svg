@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 250" xml:space="preserve" font-family="'Cascadia Code','Consolas','DejaVu Sans Mono','Menlo',monospace" font-size="13">
+  <rect x="1" y="1" width="618" height="248" rx="10" fill="#1b1e24" stroke="#3a3f4b"/>
+  <circle cx="22" cy="19" r="5" fill="#ff5f56"/>
+  <circle cx="40" cy="19" r="5" fill="#ffbd2e"/>
+  <circle cx="58" cy="19" r="5" fill="#27c93f"/>
+  <text x="310" y="23" fill="#6e7681" font-size="12" text-anchor="middle">LFCS Exam Lab</text>
+  <line x1="12" y1="36" x2="608" y2="36" stroke="#2a2e37"/>
+  <text x="20" y="64" fill="#56d4dd">  +--------------------------------------+</text>
+  <text x="20" y="85" fill="#56d4dd">  |           LFCS Exam Lab               |</text>
+  <text x="20" y="106" fill="#56d4dd">  +--------------------------------------+</text>
+  <text x="20" y="148"><tspan fill="#c9d1d9">  </tspan><tspan fill="#ffffff" font-weight="bold">[1]</tspan><tspan fill="#ffffff">  Practice Mode</tspan><tspan fill="#6e7681">  | free navigation | no timer | hints available</tspan></text>
+  <text x="20" y="169"><tspan fill="#c9d1d9">  </tspan><tspan fill="#ffffff" font-weight="bold">[2]</tspan><tspan fill="#ffffff">  Exam Mode     </tspan><tspan fill="#6e7681"> | timed 120min | 20 random questions | scored</tspan></text>
+  <text x="20" y="211" fill="#c9d1d9">  Select mode: </text>
+  <rect x="130" y="200" width="8" height="14" fill="#c9d1d9" opacity="0.75"/>
+</svg>

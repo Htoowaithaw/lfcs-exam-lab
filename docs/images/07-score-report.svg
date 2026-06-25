@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" xml:space="preserve" font-family="'Cascadia Code','Consolas','DejaVu Sans Mono','Menlo',monospace" font-size="13">
+  <rect x="1" y="1" width="638" height="298" rx="10" fill="#1b1e24" stroke="#3a3f4b"/>
+  <circle cx="22" cy="19" r="5" fill="#ff5f56"/>
+  <circle cx="40" cy="19" r="5" fill="#ffbd2e"/>
+  <circle cx="58" cy="19" r="5" fill="#27c93f"/>
+  <text x="320" y="23" fill="#6e7681" font-size="12" text-anchor="middle">LFCS Exam Lab — results</text>
+  <line x1="12" y1="36" x2="628" y2="36" stroke="#2a2e37"/>
+  <text x="20" y="62" fill="#56d4dd" font-weight="bold">  Exam Score Report</text>
+  <text x="20" y="76" fill="#3a3f4b">  ------------------------------------------------------------</text>
+  <text x="20" y="106"><tspan fill="#c9d1d9">  Result   </tspan><tspan fill="#56d364" font-weight="bold">  PASS  </tspan><tspan fill="#56d364">  80.0%</tspan><tspan fill="#ffffff">  16/20</tspan><tspan fill="#c9d1d9"> correct  4 failed</tspan></text>
+  <text x="20" y="128" fill="#6e7681">  Threshold : approx. 66% (not an official LFCS figure)</text>
+  <text x="20" y="150" fill="#6e7681">  Time used : 4210s  |  End: completed</text>
+  <text x="20" y="184"><tspan fill="#56d364">  PASS</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#ffffff">q192</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#56b6c2">Users and Groups</tspan><tspan fill="#6e7681">  ubuntu</tspan></text>
+  <text x="20" y="206"><tspan fill="#f85149">  FAIL</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#ffffff">q225</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#56b6c2">Networking</tspan><tspan fill="#6e7681">  ubuntu</tspan></text>
+  <text x="20" y="228"><tspan fill="#56d364">  PASS</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#ffffff">q038</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#56b6c2">Essential Commands</tspan><tspan fill="#6e7681">  ubuntu</tspan></text>
+  <text x="20" y="250"><tspan fill="#56d364">  PASS</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#ffffff">q062</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#56b6c2">Operations &amp; Deployment</tspan><tspan fill="#6e7681">  ubuntu</tspan></text>
+  <text x="20" y="272"><tspan fill="#f85149">  FAIL</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#ffffff">q202</tspan><tspan fill="#c9d1d9">  </tspan><tspan fill="#56b6c2">Storage</tspan><tspan fill="#6e7681">  ubuntu</tspan></text>
+</svg>

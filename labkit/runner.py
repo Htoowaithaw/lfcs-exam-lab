@@ -47,7 +47,7 @@ def _install_task_text(provider: Provider, q: Question, machine: str) -> None:
         raise RuntimeError(f"Task publish failed for {q.id} on {machine}")
 
 
-def load_question(provider: Provider, lab_root: Path, q: Question) -> bool:
+def load_question(provider: Provider, lab_root: Path, q: Question, progress=None) -> bool:
     machines = q.machines()
     try:
         # Rocky VM is not snapshot-restored by the lab; require it already up.
@@ -79,6 +79,12 @@ def load_question(provider: Provider, lab_root: Path, q: Question) -> bool:
                     raise RuntimeError(f"Inject failed for {q.id} on {target}")
         for target in machines:
             _install_task_text(provider, q, target)
+        # Mark the question 'attempted' on a successful load (status only, no
+        # attempt-count bump) to match lab.ps1's Load-Question, so the two
+        # launchers agree on the shared progress.json. Skipped for the gate
+        # (which passes progress=None).
+        if progress is not None:
+            progress.update(q.id, "attempted", False)
         return True
     except Exception as exc:  # noqa: BLE001
         print(ui.c("91", f"  {exc}"))

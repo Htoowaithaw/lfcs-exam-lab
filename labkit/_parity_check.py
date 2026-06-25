@@ -1,6 +1,7 @@
-"""Throwaway parity check: prove the Python parser sees the bank correctly.
+"""Parity self-check: prove the parser sees the question bank correctly.
 
-Run: python -m labkit._parity_check
+This is the permanent CI gate (run by .github/workflows/ci.yml on every push/PR
+across Windows/Linux/macOS). Run locally with: python -m labkit._parity_check
 Validates total count, domain distribution, multi-VM count, and that every
 question parsed with a non-empty id/title/question + resolvable target machine.
 """

@@ -231,10 +231,15 @@ function Request-Elevation {
   try {
     Start-Process powershell.exe -Verb RunAs -ArgumentList $argList | Out-Null
     Info "An elevated window was opened. Continue there; this window can be closed."
+    return $true
   } catch {
-    Bad "Could not elevate: $($_.Exception.Message)"
+    # User cancelled the UAC prompt, or the launch failed. Do NOT report success:
+    # the caller does `if (Request-Elevation) { exit 0 }`, so returning $true here
+    # would exit 0 having installed nothing.
+    Bad "Could not elevate (UAC cancelled or blocked): $($_.Exception.Message)"
+    Warn "Re-run from an elevated PowerShell to install the tools."
+    return $false
   }
-  return $true
 }
 
 function Install-WithWinget($id, $label) {
@@ -374,7 +379,8 @@ $buildNeeded = Test-BuildNeeded
 # Elevate up front if an admin action is required and we're not elevated.
 $needsAdmin = $needVagrant -or $needVbox -or ($DisableHyperV)
 if ($needsAdmin -and -not (Check-Admin)) {
-  if (Request-Elevation) { exit 0 }
+  if (Request-Elevation) { exit 0 }     # elevated window spawned; this one is done
+  exit 1                                # elevation cancelled/failed - stop, don't pretend success
 }
 
 # 1) Install missing tools.

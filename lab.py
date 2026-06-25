@@ -72,7 +72,7 @@ def start_practice(provider, questions, progress: Progress):
             print(ui.c("91", "  Invalid choice"))
             continue
         current = questions[int(choice) - 1]
-        if not runner.load_question(provider, LAB_ROOT, current):
+        if not runner.load_question(provider, LAB_ROOT, current, progress):
             _prompt("  Press Enter")
             continue
         _practice_question_loop(provider, current, progress)
@@ -104,7 +104,10 @@ def _practice_question_loop(provider, current: Question, progress: Progress):
         action = _prompt("  Action: ").strip()
         if action == "v":
             print()
-            runner.validate_question(provider, current, progress)
+            try:
+                runner.validate_question(provider, current, progress)
+            except Exception as exc:  # noqa: BLE001 - keep the session alive on a VM/SSH failure
+                print(ui.c("91", f"  Validation could not run: {exc}"))
             print()
             _prompt("  Press Enter")
         elif action == "s":
@@ -114,7 +117,7 @@ def _practice_question_loop(provider, current: Question, progress: Progress):
             print(runner.format_task_text(current))
             _prompt("  Press Enter")
         elif action == "r":
-            runner.load_question(provider, LAB_ROOT, current)
+            runner.load_question(provider, LAB_ROOT, current, progress)
         elif action == "h":
             show_hints = not show_hints
         elif action == "q":
@@ -183,7 +186,7 @@ def start_exam(provider, questions, progress: Progress, args):
             continue
         current = selected[int(choice) - 1]
         print(ui.c("90", f"  Opening {current.id} - VM resets to base snapshot..."))
-        if not runner.load_question(provider, LAB_ROOT, current):
+        if not runner.load_question(provider, LAB_ROOT, current, progress):
             _prompt("  Press Enter")
             continue
         _exam_question_loop(provider, current, results, end_ts, started, selected, args, progress)
@@ -212,8 +215,12 @@ def _exam_question_loop(provider, current, results, end_ts, started, selected, a
         action = _prompt("  Action: ").strip()
         if action == "v":
             print()
-            rc = runner.validate_question(provider, current, progress)
-            results[current.id] = "PASS" if rc == 0 else "FAIL"
+            try:
+                rc = runner.validate_question(provider, current, progress)
+                results[current.id] = "PASS" if rc == 0 else "FAIL"
+            except Exception as exc:  # noqa: BLE001 - keep the exam alive; it can still be ended/scored
+                print(ui.c("91", f"  Validation could not run: {exc}"))
+                results[current.id] = "FAIL"
             print()
             _prompt("  Press Enter")
         elif action == "s":

@@ -131,6 +131,10 @@ def parse_question(path: Path) -> Question:
 
     if not q.id.strip():
         raise ValueError(f"Question file '{path}' has no id")
+    # Ids are interpolated into the remote 'bash /vagrant/.../<id>.sh' command;
+    # enforce the known qNNN / qRNN shape as defense-in-depth (they're trusted today).
+    if not re.match(r"^(q\d+|qR\d+)$", q.id):
+        raise ValueError(f"Question file '{path}' has a malformed id '{q.id}'")
     return q
 
 

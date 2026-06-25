@@ -1,0 +1,23 @@
+# Normalize line endings. The inject/validate/solution/provision shell scripts
+# run inside the Linux VMs via the Vagrant synced folder; if a Windows clone
+# (core.autocrlf=true) gave them CRLF, bash would fail on the shebang and on
+# stray carriage returns. Force LF for everything that runs in a shell/Python,
+# and CRLF for PowerShell.
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.py   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf
+Vagrantfile text eol=lf
+
+*.ps1  text eol=crlf
+
+# Binaries (none tracked today; future-proofing)
+*.png binary
+*.jpg binary
+*.gif binary
+*.box binary
+*.vdi binary
+*.ova binary

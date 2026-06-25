@@ -33,7 +33,7 @@ for arg in "$@"; do
     --skip-build) SKIP_BUILD=1 ;;
     --skip-smoke) SKIP_SMOKE=1 ;;
     --force)      FORCE=1 ;;     # proceed even if preflight is BLOCKED (advanced/testing)
-    -h|--help)    grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)    grep '^#' "$0" | grep -v '^#!' | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $arg"; exit 2 ;;
   esac
 done
@@ -54,7 +54,7 @@ else
 fi
 
 PROBLEMS=0; WARNINGS=0
-head()  { printf '\n%s== %s ==%s\n' "$C_CYAN" "$1" "$C_OFF"; }
+hdr()   { printf '\n%s== %s ==%s\n' "$C_CYAN" "$1" "$C_OFF"; }
 ok()    { printf '  %s[ OK ]%s %s\n' "$C_GREEN" "$C_OFF" "$1"; }
 warn()  { printf '  %s[WARN]%s %s\n' "$C_YEL" "$C_OFF" "$1"; WARNINGS=$((WARNINGS+1)); }
 bad()   { printf '  %s[FAIL]%s %s\n' "$C_RED" "$C_OFF" "$1"; PROBLEMS=$((PROBLEMS+1)); }
@@ -94,7 +94,7 @@ detect_pkg() {
 }
 
 preflight() {
-  head "System"
+  hdr "System"
   info "OS   : $OS"
   info "Arch : $ARCH"
   if [ "$OS" = "Darwin" ] && { [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; }; then
@@ -106,10 +106,11 @@ preflight() {
     ok "x86-64 architecture"
   fi
 
-  head "CPU"
+  hdr "CPU"
   local cores=1
   if [ "$OS" = "Darwin" ]; then cores="$(sysctl -n hw.ncpu 2>/dev/null || echo 1)"
   else cores="$(nproc 2>/dev/null || echo 1)"; fi
+  cores=${cores:-1}                       # never let the numeric tests see an empty value
   info "Logical processors: $cores"
   if [ "$cores" -ge "$REC_CPU" ]; then ok "$cores logical processors (>= $REC_CPU recommended)"
   elif [ "$cores" -ge "$MIN_CPU" ]; then warn "$cores logical processors (>= $MIN_CPU min; $REC_CPU recommended)"
@@ -121,7 +122,7 @@ preflight() {
     else bad "No VT-x/AMD-V flag in /proc/cpuinfo - enable virtualization in BIOS, or VMs cannot start"; fi
   fi
 
-  head "Conflicting virtualization"
+  hdr "Conflicting virtualization"
   if [ "$OS" = "Linux" ]; then
     if lsmod 2>/dev/null | grep -q '^kvm'; then
       warn "KVM kernel modules are loaded. If a KVM/QEMU guest is running, it can hold VT-x and block VirtualBox."
@@ -133,27 +134,30 @@ preflight() {
     ok "No conflicting hypervisor check needed on macOS (Intel)"
   fi
 
-  head "Memory"
+  hdr "Memory"
   local total_gb=0
   if [ "$OS" = "Darwin" ]; then
     total_gb="$(echo "$(sysctl -n hw.memsize 2>/dev/null || echo 0)/1073741824" | bc 2>/dev/null || echo 0)"
   else
     local kb; kb="$(awk '/MemTotal/{print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+    kb=${kb:-0}
     total_gb="$(( kb / 1048576 ))"
   fi
+  total_gb=${total_gb:-0}
   info "Total RAM: ${total_gb} GB"
   if [ "${total_gb%.*}" -ge "$REC_RAM_GB" ] 2>/dev/null; then ok "${total_gb} GB RAM (>= $REC_RAM_GB recommended)"
   elif [ "${total_gb%.*}" -ge "$MIN_RAM_GB" ] 2>/dev/null; then warn "${total_gb} GB RAM (>= $MIN_RAM_GB min; $REC_RAM_GB recommended)"
   else bad "${total_gb} GB RAM (need >= $MIN_RAM_GB; node1+node2 alone want ~7 GB)"; fi
 
-  head "Disk"
-  local free_gb; free_gb="$(df -Pk "$LAB_ROOT" | awk 'NR==2{print int($4/1048576)}')"
+  hdr "Disk"
+  local free_gb; free_gb="$(df -Pk "$LAB_ROOT" 2>/dev/null | awk 'NR==2{print int($4/1048576)}')"
+  free_gb=${free_gb:-0}
   info "Free on lab volume: ${free_gb} GB"
   if [ "$free_gb" -ge "$REC_DISK_GB" ]; then ok "${free_gb} GB free (>= $REC_DISK_GB recommended)"
   elif [ "$free_gb" -ge "$MIN_DISK_GB" ]; then warn "${free_gb} GB free (>= $MIN_DISK_GB min; $REC_DISK_GB recommended)"
   else bad "${free_gb} GB free (need >= $MIN_DISK_GB for boxes + VM disks + scratch disks)"; fi
 
-  head "Lab tooling"
+  hdr "Lab tooling"
   detect_pkg
   if [ -n "$PKG" ]; then ok "Package manager: $PKG"; else warn "No supported package manager (brew/apt/dnf) found - you'd install tools manually"; fi
   have vagrant && ok "Vagrant present: $(vagrant --version 2>/dev/null)" || warn "Vagrant not found (installer can add it)"
@@ -162,7 +166,7 @@ preflight() {
   have python3 && ok "python3 present: $(python3 --version 2>/dev/null)" || warn "python3 not found (needed by the launcher; installer can add it)"
 
   if have vagrant && [ -n "$VBOXMANAGE" ]; then
-    head "Images & build state"
+    hdr "Images & build state"
     local boxes; boxes="$(vagrant box list 2>/dev/null || true)"
     for b in "bento/ubuntu-22.04" "bento/rockylinux-9"; do
       echo "$boxes" | grep -q "$b" && ok "box present: $b" || info "box not downloaded yet: $b (vagrant up fetches it)"
@@ -178,7 +182,7 @@ preflight() {
 }
 
 verdict() {
-  head "Readiness"
+  hdr "Readiness"
   if [ "$PROBLEMS" -gt 0 ]; then
     printf '  %sBLOCKED: %d problem(s), %d warning(s). Fix the [FAIL] items, then re-run.%s\n' "$C_RED" "$PROBLEMS" "$WARNINGS" "$C_OFF"
     return 2
@@ -238,7 +242,7 @@ install_dnf() {  # $1 = sudo
 install_tools() {
   local sudo; sudo="$(need_sudo)"
   if ! have vagrant || [ -z "$VBOXMANAGE" ] || ! have python3; then
-    head "Install missing tools"
+    hdr "Install missing tools"
     info "VirtualBox needs a kernel module + the right repos; this is the least-portable step."
     case "$PKG" in
       brew)
@@ -268,7 +272,7 @@ install_tools() {
 }
 
 build_vms() {
-  head "Build VMs"
+  hdr "Build VMs"
   info "First build downloads ~1.5 GB of images and provisions 3 VMs."
   info "Expect roughly 20-45 minutes depending on network and disk speed."
   ask_yesno "Start the build now?" || { warn "Build skipped."; return 1; }
@@ -289,7 +293,7 @@ build_vms() {
 }
 
 smoke_test() {
-  head "Self-verify (smoke test)"
+  hdr "Self-verify (smoke test)"
   info "Runs q005 end-to-end: load -> validate-fails -> solve -> validate-passes -> restore."
   ask_yesno "Run the self-verify now? (boots a VM briefly)" || { warn "Smoke test skipped - install unverified."; return 2; }
   cd "$LAB_ROOT" || return 1
@@ -322,18 +326,21 @@ fi
 
 install_tools || exit 1
 
+BUILD_OK=0
 if [ "$SKIP_BUILD" = "1" ]; then
   info "SkipBuild set - not building."
 else
-  build_vms || true
+  if build_vms; then BUILD_OK=1; fi
 fi
 
+# Only self-verify if a build actually completed - otherwise we'd boot VMs that
+# were never built (e.g. the user declined the build) and print a confusing FAIL.
 SMOKE_RC=2
-if [ "$SKIP_SMOKE" = "0" ] && [ "$SKIP_BUILD" = "0" ]; then
+if [ "$SKIP_SMOKE" = "0" ] && [ "$SKIP_BUILD" = "0" ] && [ "$BUILD_OK" = "1" ]; then
   smoke_test; SMOKE_RC=$?
 fi
 
-head "Done"
+hdr "Done"
 if [ "$SMOKE_RC" = "0" ]; then
   printf '  %sSetup verified. Start practicing:%s\n' "$C_GREEN" "$C_OFF"
 else

@@ -1,6 +1,6 @@
 # LFCS Question Source Map
 
-Authoritative source map for later question-bank scaling. `distro=rocky` must run on `lfcs-rocky1`. `multivm=yes` is deferred to the q201+ phase and must not be built now.
+Topic map for the question bank (all rows below are built; see `BANK_COVERAGE.md` for build status). `distro=rocky` questions run on `lfcs-rocky1`; `multivm=yes` questions run across `node1` + `node2`; `multivm=half` means the topic has both single-node and two-node questions.
 
 | domain | topic | target_count | distro | multivm |
 |---|---|---:|---|---|

@@ -101,6 +101,9 @@ The VMs built by setup:
 
 ## Usage
 
+> 📖 **New here? Read the [step-by-step usage guide](docs/USAGE.md)** — a screen-by-screen walkthrough of a
+> full practice session and a full exam, with screenshots.
+
 Start the lab with `.\lfcs.ps1` (Windows) or `./lfcs.sh` (Mac/Linux). The menu offers:
 
 - **Practice Mode** — browse the full list freely, no timer, hints available.

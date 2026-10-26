@@ -32,15 +32,30 @@ function Test-Command($name) {
   return $null -ne (Get-Command $name -ErrorAction SilentlyContinue)
 }
 
+# Run a VBoxManage probe, discarding stderr. Under "Stop", Windows PowerShell 5.1
+# turns any native stderr into a terminating NativeCommandError even with 2>$null
+# (e.g. a VM that isn't registered yet on a fresh install), so relax it for the
+# call. $LASTEXITCODE still reflects VBoxManage afterwards.
+function Invoke-VBoxManageQuiet([string[]]$Arguments) {
+  $oldErrorAction = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    return & $VBoxManage @Arguments 2>$null
+  }
+  finally {
+    $ErrorActionPreference = $oldErrorAction
+  }
+}
+
 function Test-BaseSnapshot($vboxName) {
   if (!(Test-Path $VBoxManage)) { return $false }
-  $list = & $VBoxManage snapshot $vboxName list --machinereadable 2>$null
+  $list = Invoke-VBoxManageQuiet @("snapshot", $vboxName, "list", "--machinereadable")
   if ($LASTEXITCODE -ne 0) { return $false }
   return ($list | Where-Object { $_ -eq 'SnapshotName="base"' }).Count -eq 1
 }
 
 function Stop-LabVmIfRunning($vboxName) {
-  $info = & $VBoxManage showvminfo $vboxName --machinereadable 2>$null
+  $info = Invoke-VBoxManageQuiet @("showvminfo", $vboxName, "--machinereadable")
   if ($LASTEXITCODE -ne 0) { return }
   $state = ($info | Where-Object { $_ -match '^VMState=' } | Select-Object -First 1)
   if ($state -match '"running"') {

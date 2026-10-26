@@ -78,6 +78,26 @@ function Get-VBoxManagePath {
   return $null
 }
 
+# Run a native probe and return its stdout, discarding stderr. Under "Stop",
+# Windows PowerShell 5.1 turns any native stderr into a terminating
+# NativeCommandError even with 2>$null (e.g. VBoxManage on a VM that isn't
+# registered yet), so relax it for the call. $LASTEXITCODE is still set.
+function Invoke-NativeQuiet([string]$Exe, [string[]]$Arguments) {
+  $oldErrorAction = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    return & $Exe @Arguments 2>$null
+  }
+  finally {
+    $ErrorActionPreference = $oldErrorAction
+  }
+}
+
+function Test-BaseSnapshot($vbox, $vm) {
+  $snaps = (Invoke-NativeQuiet $vbox @("snapshot", $vm, "list", "--machinereadable")) -join "`n"
+  return $snaps -match 'SnapshotName="base"'
+}
+
 function Check-Admin {
   $id = [Security.Principal.WindowsIdentity]::GetCurrent()
   $p = New-Object Security.Principal.WindowsPrincipal($id)
@@ -152,13 +172,13 @@ function Preflight {
   else { Info "Not elevated - installing tools / toggling Hyper-V will need an admin run" }
 
   if (Test-Command "vagrant") {
-    $vv = (& vagrant --version 2>$null)
+    $vv = Invoke-NativeQuiet "vagrant" @("--version")
     Ok "Vagrant present: $vv"
   } else { Warn "Vagrant not found (installer can add it via winget)" }
 
   $vbox = Get-VBoxManagePath
   if ($vbox) {
-    $vbv = (& $vbox --version 2>$null)
+    $vbv = Invoke-NativeQuiet $vbox @("--version")
     Ok "VirtualBox present: $vbv"
   } else { Warn "VirtualBox not found (installer can add it via winget)" }
 
@@ -168,15 +188,14 @@ function Preflight {
   # Boxes + base snapshots (only meaningful if vagrant/vbox exist)
   if (Test-Command "vagrant") {
     Head "Images & build state"
-    $boxes = (& vagrant box list 2>$null) -join "`n"
+    $boxes = (Invoke-NativeQuiet "vagrant" @("box", "list")) -join "`n"
     foreach ($b in @("bento/ubuntu-22.04", "bento/rockylinux-9")) {
       if ($boxes -match [regex]::Escape($b)) { Ok "box present: $b" }
       else { Info "box not downloaded yet: $b (vagrant up will fetch it)" }
     }
     if ($vbox) {
       foreach ($vm in @("lfcs-node1", "lfcs-node2", "lfcs-rocky1")) {
-        $snaps = (& $vbox snapshot $vm list --machinereadable 2>$null) -join "`n"
-        if ($snaps -match 'SnapshotName="base"') { Ok "$vm : base snapshot present (built)" }
+        if (Test-BaseSnapshot $vbox $vm) { Ok "$vm : base snapshot present (built)" }
         else { Info "$vm : not built yet" }
       }
     }
@@ -208,8 +227,7 @@ function Test-BuildNeeded {
   $vbox = Get-VBoxManagePath
   if (!$vbox) { return $true }
   foreach ($vm in @("lfcs-node1", "lfcs-node2", "lfcs-rocky1")) {
-    $snaps = (& $vbox snapshot $vm list --machinereadable 2>$null) -join "`n"
-    if ($snaps -notmatch 'SnapshotName="base"') { return $true }
+    if (-not (Test-BaseSnapshot $vbox $vm)) { return $true }
   }
   return $false
 }

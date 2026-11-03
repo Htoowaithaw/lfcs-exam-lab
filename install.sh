@@ -40,6 +40,42 @@ done
 
 LAB_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
+# ---- VM lock (avoid concurrent `vagrant up`) --------------------------------
+# Running `vagrant up` for more than one machine at the same time races on
+# Vagrant's SSH port-forward allocation: two machines can both land on the
+# same host port, so Vagrant inserts a fresh SSH key into the wrong guest and
+# the other machine is left permanently unreachable (seen in practice - one
+# VM looked "stuck/slow to boot" and another failed all SSH auth). `mkdir` is
+# used instead of `flock` because flock isn't available on stock macOS.
+VM_LOCK_DIR="$LAB_ROOT/.vagrant/.lfcs-vm-lock"
+VM_LOCK_HELD=0
+
+acquire_vm_lock() {
+  local tries=0
+  mkdir -p "$LAB_ROOT/.vagrant" 2>/dev/null || true
+  while ! mkdir "$VM_LOCK_DIR" 2>/dev/null; do
+    if [ "$tries" -eq 0 ]; then
+      warn "Another build/boot is already using the VMs (lock: $VM_LOCK_DIR)."
+      info "Waiting for it to finish - running vagrant up concurrently corrupts SSH port forwarding/keys."
+    fi
+    tries=$((tries + 1))
+    if [ "$tries" -gt 150 ]; then
+      bad "Timed out waiting for the VM lock after 5 min."
+      info "If nothing is actually running, remove it manually: rmdir \"$VM_LOCK_DIR\""
+      return 1
+    fi
+    sleep 2
+  done
+  VM_LOCK_HELD=1
+  trap release_vm_lock EXIT INT TERM
+  return 0
+}
+
+release_vm_lock() {
+  [ "$VM_LOCK_HELD" = "1" ] && rmdir "$VM_LOCK_DIR" 2>/dev/null
+  VM_LOCK_HELD=0
+}
+
 # ---- requirements (from the Vagrantfile resource asks) ----------------------
 MIN_RAM_GB=8;  REC_RAM_GB=16
 MIN_DISK_GB=30; REC_DISK_GB=50
@@ -277,6 +313,8 @@ build_vms() {
   info "Expect roughly 20-45 minutes depending on network and disk speed."
   ask_yesno "Start the build now?" || { warn "Build skipped."; return 1; }
   cd "$LAB_ROOT" || return 1
+  acquire_vm_lock || return 1
+  # One machine at a time - see acquire_vm_lock's comment for why.
   for m in node1 node2 lfcs-rocky1; do
     local vbox="$m"; [ "$m" = "node1" ] && vbox="lfcs-node1"; [ "$m" = "node2" ] && vbox="lfcs-node2"
     if [ "$REBUILD" = "0" ] && "$VBOXMANAGE" snapshot "$vbox" list --machinereadable 2>/dev/null | grep -q 'SnapshotName="base"'; then
@@ -284,10 +322,11 @@ build_vms() {
       continue
     fi
     info "$m: vagrant up --provision ..."
-    vagrant up "$m" --provision || { bad "vagrant up failed for $m"; return 1; }
+    vagrant up "$m" --provision || { bad "vagrant up failed for $m"; release_vm_lock; return 1; }
     info "$m: saving base snapshot ..."
-    vagrant snapshot save "$m" base || { bad "snapshot save failed for $m"; return 1; }
+    vagrant snapshot save "$m" base || { bad "snapshot save failed for $m"; release_vm_lock; return 1; }
   done
+  release_vm_lock
   ok "Build complete; base snapshots saved."
   return 0
 }
@@ -297,10 +336,13 @@ smoke_test() {
   info "Runs q005 end-to-end: load -> validate-fails -> solve -> validate-passes -> restore."
   ask_yesno "Run the self-verify now? (boots a VM briefly)" || { warn "Smoke test skipped - install unverified."; return 2; }
   cd "$LAB_ROOT" || return 1
+  acquire_vm_lock || return 1
   if python3 lab.py --gate q005; then
+    release_vm_lock
     ok "VERIFIED: q005 passed end-to-end on this machine."
     return 0
   fi
+  release_vm_lock
   bad "Self-verify FAILED. Lab is installed but a question did not pass end-to-end."
   return 1
 }

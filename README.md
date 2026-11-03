@@ -195,6 +195,14 @@ A pass prints `q005 PASS/PASS/PASS/PASS` and exits 0. This is exactly what the i
   under heavy concurrent VM load can leave a `VBoxHeadless` process locked (known VirtualBox ARM-host
   issue). Find it with `ps aux | grep VBoxHeadless`, `kill -9 <pid>`, then `vagrant destroy -f <name> &&
   vagrant up <name>` to rebuild clean. Running fewer VMs at once reduces how often this happens.
+- **Never run `vagrant up` for more than one machine at the same time** (e.g. two terminals, or `&` in the
+  background). Vagrant's SSH port-forward allocation races across concurrent invocations - two machines
+  can land on the same host port, and Vagrant ends up inserting a fresh SSH key into the wrong guest.
+  Symptoms: one VM looks hung/slow to boot, another rejects its own SSH key with "too many authentication
+  failures". Fix: `vagrant halt -f` the affected machines, `vagrant destroy -f <name>` the one with the bad
+  key, then `vagrant up <name>` them one at a time. `install.sh` / `setup.ps1` already build machines
+  sequentially and hold a lock (`.vagrant/.lfcs-vm-lock`) so two installer runs can't race each other -
+  just don't bypass them with manual parallel `vagrant up` calls.
 - **SSH key permission complaints (Windows):** keep the repo in your user profile; don't copy `.vagrant/`
   or `.ssh-cache.json` between machines.
 

@@ -191,10 +191,15 @@ A pass prints `q005 PASS/PASS/PASS/PASS` and exits 0. This is exactly what the i
   Linux stop any running KVM guest. Confirm VT-x/AMD-V is enabled in BIOS.
 - **Re-check readiness anytime:** `./install.sh --check-only` (or `.\install.ps1 -CheckOnly`).
 - **A VM is stuck:** reload the question (restores its base), or rebuild with `setup.ps1 -Rebuild`.
-- **Apple Silicon: a VM is unresponsive / `VBoxManage` hangs on it:** repeated snapshot-restore cycles
-  under heavy concurrent VM load can leave a `VBoxHeadless` process locked (known VirtualBox ARM-host
-  issue). Find it with `ps aux | grep VBoxHeadless`, `kill -9 <pid>`, then `vagrant destroy -f <name> &&
-  vagrant up <name>` to rebuild clean. Running fewer VMs at once reduces how often this happens.
+- **Apple Silicon: a VM is unresponsive / `VBoxManage` hangs on it:** `labkit/providers/vagrant.py`
+  self-heals this automatically - if a `VBoxManage` call or the post-restore SSH wait doesn't come back
+  in a reasonable time (a known VirtualBox ARM-host issue, usually right after a snapshot restore), it
+  kills the wedged VM process, restarts the VM fresh, and retries once, printing
+  `VirtualBox looks wedged on <machine> - killing and restarting it...` when this happens. You'll see this
+  during `lab.py` practice/exam sessions and the `--gate` self-test without needing to do anything.
+  If the retry also fails (rare - means the wedge is deeper than a process restart fixes), you'll get a
+  clear error naming the machine; at that point fall back to manually: `ps aux | grep VBoxHeadless`,
+  `kill -9 <pid>`, `vagrant destroy -f <name> && vagrant up <name>` to rebuild clean.
 - **Never run `vagrant up` for more than one machine at the same time** (e.g. two terminals, or `&` in the
   background). Vagrant's SSH port-forward allocation races across concurrent invocations - two machines
   can land on the same host port, and Vagrant ends up inserting a fresh SSH key into the wrong guest.

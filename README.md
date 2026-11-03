@@ -31,6 +31,7 @@ You need an **x86-64** machine (Windows / Linux / Intel Mac) with virtualization
 checks everything first and can install the prerequisites for you.
 
 **Windows (PowerShell):**
+
 ```powershell
 git clone https://github.com/Htoowaithaw/lfcs-exam-lab.git
 cd lfcs-exam-lab
@@ -39,6 +40,7 @@ cd lfcs-exam-lab
 ```
 
 **Linux / macOS, Intel or Apple Silicon (bash):**
+
 ```bash
 git clone https://github.com/Htoowaithaw/lfcs-exam-lab.git
 cd lfcs-exam-lab
@@ -47,6 +49,7 @@ cd lfcs-exam-lab
 ```
 
 **Just check if your machine is ready (changes nothing):**
+
 ```bash
 ./install.sh --check-only      # or:  .\install.ps1 -CheckOnly
 ```
@@ -59,11 +62,11 @@ good — you don't have to take our word for it.
 ## Platform support
 
 | Platform | Status | Notes |
-|---|---|---|
+| --- | --- | --- |
 | **Windows x86-64** | ✅ Supported — installer + lab self-verified on a Win11 dev machine | VirtualBox 7+ coexists with Hyper-V (slower); installer offers to disable it |
 | **Linux x86-64** | 🟢 Installer verified on Ubuntu 24.04 (repos + current Vagrant 2.4.9 + VirtualBox install cleanly); full VM build still needs a VT-capable host. Fedora/`dnf` path not yet run. | needs VT-x/AMD-V and no active KVM guest |
 | **Intel Mac x86-64** | 🧪 Built; not yet verified on a clean machine — feedback/PRs welcome | `brew` install path |
-| **Apple Silicon Mac (M1/M2/M3/M4)** | 🧪 Built; not yet verified end-to-end on a clean machine — feedback/PRs welcome | VirtualBox 7.1+ ships a native Apple Silicon build, and this lab's `bento` boxes publish native arm64 images (real arm64 guests, no x86 translation). One extra one-time step beyond Intel: after installing VirtualBox, launch it once and approve its networking system extension in System Settings > General > Login Items & Extensions, then reboot — otherwise `private_network` fails with "failed to open /dev/vboxnetctl". |
+| **Apple Silicon Mac (M1/M2/M3/M4)** | 🟢 Verified end-to-end on a managed, system-extension-restricted machine — real two-node (`q225`) and libvirt (`q094`) question gates both `PASS/PASS/PASS/PASS` | VirtualBox 7.1+ ships a native Apple Silicon build; this lab's `bento` boxes publish native arm64 images (real arm64 guests, no x86 translation). Inter-node networking uses a VirtualBox NAT Network rather than host-only, so **no system-extension approval is needed on any platform** (see Vagrantfile comments). Caveat: VirtualBox's Apple Silicon support is newer than the other platforms' and showed VM-lifecycle instability (hung processes needing a manual `kill`/rebuild) under heavy repeated snapshot-restore cycling with many concurrent VMs — a known class of issue in VirtualBox's own ARM-host changelog, not specific to this lab. |
 
 Every install runs a built-in self-verify (`lab.py --gate q005` / the Windows gate), so even on the
 "not yet verified" platforms you get an immediate pass/fail for your own machine. If something is off on your
@@ -84,7 +87,7 @@ OS, please open an issue with your `--check-only` output.
 ## Question bank
 
 | Domain | Questions |
-|---|---:|
+| --- | ---: |
 | Essential Commands | 50 |
 | Operations & Deployment | 60 |
 | Networking | 60 |
@@ -92,8 +95,9 @@ OS, please open an issue with your `--check-only` output.
 | Users and Groups | 30 |
 
 **Total: 250** — 215 single-node, 35 two-node. Single-node Ubuntu tasks run on `node1` (`lfcs-node1`),
-Rocky Linux tasks on `lfcs-rocky1`, and two-node tasks use `node1` + `node2` over the host-only network
-`192.168.56.0/24`. See `docs/BANK_COVERAGE.md`.
+Rocky Linux tasks on `lfcs-rocky1`, and two-node tasks use `node1` + `node2` over a VirtualBox NAT
+Network (`192.168.56.0/24`) — a software-defined switch inside VirtualBox, needs no host-level network
+driver or approval on any platform. See `docs/BANK_COVERAGE.md`.
 
 The VMs built by setup:
 
@@ -173,6 +177,7 @@ Run a single question end-to-end (load → unsolved-fails → solve → solved-p
 ```bash
 python3 lab.py --gate q005                 # macOS / Linux (also works on Windows)
 ```
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\run_question_gate.ps1 -QuestionIds q005
 ```
@@ -186,10 +191,10 @@ A pass prints `q005 PASS/PASS/PASS/PASS` and exits 0. This is exactly what the i
   Linux stop any running KVM guest. Confirm VT-x/AMD-V is enabled in BIOS.
 - **Re-check readiness anytime:** `./install.sh --check-only` (or `.\install.ps1 -CheckOnly`).
 - **A VM is stuck:** reload the question (restores its base), or rebuild with `setup.ps1 -Rebuild`.
-- **Apple Silicon: `private_network` fails / VMs can't reach each other:** VirtualBox's host networking
-  needs a one-time system extension approval. Launch VirtualBox.app once (this is usually what triggers
-  the prompt), approve it in System Settings > General > Login Items & Extensions, then reboot. Confirm
-  with `VBoxManage list hostonlyifs` (should not error) before retrying `vagrant up`.
+- **Apple Silicon: a VM is unresponsive / `VBoxManage` hangs on it:** repeated snapshot-restore cycles
+  under heavy concurrent VM load can leave a `VBoxHeadless` process locked (known VirtualBox ARM-host
+  issue). Find it with `ps aux | grep VBoxHeadless`, `kill -9 <pid>`, then `vagrant destroy -f <name> &&
+  vagrant up <name>` to rebuild clean. Running fewer VMs at once reduces how often this happens.
 - **SSH key permission complaints (Windows):** keep the repo in your user profile; don't copy `.vagrant/`
   or `.ssh-cache.json` between machines.
 

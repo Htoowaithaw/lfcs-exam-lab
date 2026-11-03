@@ -99,10 +99,7 @@ preflight() {
   info "Arch : $ARCH"
   if [ "$OS" = "Darwin" ] && { [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; }; then
     ok "Apple Silicon (arm64): VirtualBox 7.1+ ships a native Apple Silicon build, and this lab's bento boxes publish native arm64 images - VMs run as real arm64 guests (no x86 translation)."
-    warn "Experimental on this platform (not yet verified end-to-end on a clean machine)."
-    info "One-time setup VirtualBox needs here: after installing it, launch VirtualBox.app once, approve its"
-    info "networking system extension in System Settings > General > Login Items & Extensions, then reboot -"
-    info "private_network (used by node1/node2) will fail with 'failed to open /dev/vboxnetctl' until that's done."
+    info "Inter-node networking uses a VirtualBox NAT Network (not host-only), so no system-extension approval is needed."
   elif [ "$ARCH" != "x86_64" ] && [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ] && [ "$ARCH" != "aarch64" ]; then
     bad "CPU arch '$ARCH' is not supported (need x86-64, or arm64 on macOS)."
   else

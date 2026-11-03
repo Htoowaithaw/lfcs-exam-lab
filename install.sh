@@ -98,10 +98,13 @@ preflight() {
   info "OS   : $OS"
   info "Arch : $ARCH"
   if [ "$OS" = "Darwin" ] && { [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; }; then
-    bad "Apple Silicon (arm64): VirtualBox cannot run the x86 Ubuntu/Rocky VMs this lab uses."
-    info "There is no VirtualBox path on Apple Silicon. A cloud/Codespaces option would be needed (not this installer)."
-  elif [ "$ARCH" != "x86_64" ] && [ "$ARCH" != "amd64" ]; then
-    bad "CPU arch '$ARCH' is not x86-64; VirtualBox needs x86-64."
+    ok "Apple Silicon (arm64): VirtualBox 7.1+ ships a native Apple Silicon build, and this lab's bento boxes publish native arm64 images - VMs run as real arm64 guests (no x86 translation)."
+    warn "Experimental on this platform (not yet verified end-to-end on a clean machine)."
+    info "One-time setup VirtualBox needs here: after installing it, launch VirtualBox.app once, approve its"
+    info "networking system extension in System Settings > General > Login Items & Extensions, then reboot -"
+    info "private_network (used by node1/node2) will fail with 'failed to open /dev/vboxnetctl' until that's done."
+  elif [ "$ARCH" != "x86_64" ] && [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ] && [ "$ARCH" != "aarch64" ]; then
+    bad "CPU arch '$ARCH' is not supported (need x86-64, or arm64 on macOS)."
   else
     ok "x86-64 architecture"
   fi
@@ -131,7 +134,7 @@ preflight() {
       ok "No KVM conflict detected"
     fi
   else
-    ok "No conflicting hypervisor check needed on macOS (Intel)"
+    ok "No conflicting hypervisor check needed on macOS"
   fi
 
   hdr "Memory"

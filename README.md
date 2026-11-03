@@ -38,7 +38,7 @@ cd lfcs-exam-lab
 .\lfcs.ps1              # start practicing
 ```
 
-**Linux / Intel macOS (bash):**
+**Linux / macOS, Intel or Apple Silicon (bash):**
 ```bash
 git clone https://github.com/Htoowaithaw/lfcs-exam-lab.git
 cd lfcs-exam-lab
@@ -63,7 +63,7 @@ good — you don't have to take our word for it.
 | **Windows x86-64** | ✅ Supported — installer + lab self-verified on a Win11 dev machine | VirtualBox 7+ coexists with Hyper-V (slower); installer offers to disable it |
 | **Linux x86-64** | 🟢 Installer verified on Ubuntu 24.04 (repos + current Vagrant 2.4.9 + VirtualBox install cleanly); full VM build still needs a VT-capable host. Fedora/`dnf` path not yet run. | needs VT-x/AMD-V and no active KVM guest |
 | **Intel Mac x86-64** | 🧪 Built; not yet verified on a clean machine — feedback/PRs welcome | `brew` install path |
-| **Apple Silicon Mac (M1/M2/M3/M4)** | ❌ Not supported | VirtualBox cannot run the x86 Ubuntu/Rocky VMs this lab uses; no workaround on ARM |
+| **Apple Silicon Mac (M1/M2/M3/M4)** | 🧪 Built; not yet verified end-to-end on a clean machine — feedback/PRs welcome | VirtualBox 7.1+ ships a native Apple Silicon build, and this lab's `bento` boxes publish native arm64 images (real arm64 guests, no x86 translation). One extra one-time step beyond Intel: after installing VirtualBox, launch it once and approve its networking system extension in System Settings > General > Login Items & Extensions, then reboot — otherwise `private_network` fails with "failed to open /dev/vboxnetctl". |
 
 Every install runs a built-in self-verify (`lab.py --gate q005` / the Windows gate), so even on the
 "not yet verified" platforms you get an immediate pass/fail for your own machine. If something is off on your
@@ -71,7 +71,9 @@ OS, please open an issue with your `--check-only` output.
 
 ## Requirements
 
-- **x86-64** CPU with hardware virtualization (VT-x / AMD-V) enabled in BIOS/UEFI
+- **x86-64** CPU with hardware virtualization (VT-x / AMD-V) enabled in BIOS/UEFI, **or an Apple
+  Silicon Mac** (M1/M2/M3/M4) — VirtualBox runs the lab's VMs as native arm64 guests there, no
+  BIOS-level virtualization toggle needed
 - **RAM:** 8 GB minimum (runs node1+node2), 16 GB+ recommended (comfortable headroom for all three VMs)
 - **Disk:** ~30 GB free minimum, ~50 GB recommended (VM images + node1's scratch disks)
 - **Tools:** Vagrant + VirtualBox (the installer can add them); `python3` on macOS/Linux (preinstalled or
@@ -184,6 +186,10 @@ A pass prints `q005 PASS/PASS/PASS/PASS` and exits 0. This is exactly what the i
   Linux stop any running KVM guest. Confirm VT-x/AMD-V is enabled in BIOS.
 - **Re-check readiness anytime:** `./install.sh --check-only` (or `.\install.ps1 -CheckOnly`).
 - **A VM is stuck:** reload the question (restores its base), or rebuild with `setup.ps1 -Rebuild`.
+- **Apple Silicon: `private_network` fails / VMs can't reach each other:** VirtualBox's host networking
+  needs a one-time system extension approval. Launch VirtualBox.app once (this is usually what triggers
+  the prompt), approve it in System Settings > General > Login Items & Extensions, then reboot. Confirm
+  with `VBoxManage list hostonlyifs` (should not error) before retrying `vagrant up`.
 - **SSH key permission complaints (Windows):** keep the repo in your user profile; don't copy `.vagrant/`
   or `.ssh-cache.json` between machines.
 
@@ -203,8 +209,9 @@ python3 lab.py --gate q234
 ```
 
 **Platform testing help wanted:** the full Linux end-to-end (on a VT-capable host) and the Intel-macOS
-install path are not yet verified on clean machines. If you run `install.sh` on a fresh Linux or Intel Mac,
-please open an issue with your `./install.sh --check-only` output and whether the self-verify passed.
+and Apple Silicon-macOS install paths are not yet verified on clean machines. If you run `install.sh` on
+a fresh Linux, Intel Mac, or Apple Silicon Mac, please open an issue with your `./install.sh --check-only`
+output and whether the self-verify passed.
 
 ## License
 

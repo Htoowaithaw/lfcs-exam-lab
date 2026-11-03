@@ -124,13 +124,26 @@ if command -v docker >/dev/null 2>&1; then
 fi
 
 mkdir -p /var/lib/libvirt/images /opt/lfcs-libvirt
-cat >/opt/lfcs-libvirt/base-domain.xml <<'EOF'
+# Static example domain shown to students; arch/machine/emulator must match
+# the guest's real CPU (amd64 Vagrant boxes -> x86_64, arm64 boxes ->
+# aarch64/virt) or `virsh define` of this file would fail on arm64 hosts.
+case "$(uname -m)" in
+  aarch64|arm64)
+    DOM_OS_TYPE="<type arch='aarch64' machine='virt'>hvm</type>"
+    DOM_EMULATOR="/usr/bin/qemu-system-aarch64"
+    ;;
+  *)
+    DOM_OS_TYPE="<type arch='x86_64' machine='pc'>hvm</type>"
+    DOM_EMULATOR="/usr/bin/qemu-system-x86_64"
+    ;;
+esac
+cat >/opt/lfcs-libvirt/base-domain.xml <<EOF
 <domain type='qemu'>
   <name>lfcs-template</name>
   <memory unit='MiB'>128</memory>
   <vcpu placement='static'>1</vcpu>
-  <os><type arch='x86_64' machine='pc'>hvm</type></os>
-  <devices><emulator>/usr/bin/qemu-system-x86_64</emulator></devices>
+  <os>${DOM_OS_TYPE}</os>
+  <devices><emulator>${DOM_EMULATOR}</emulator></devices>
 </domain>
 EOF
 sync

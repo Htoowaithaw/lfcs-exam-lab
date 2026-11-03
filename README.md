@@ -31,6 +31,7 @@ You need an **x86-64** machine (Windows / Linux / Intel Mac) with virtualization
 checks everything first and can install the prerequisites for you.
 
 **Windows (PowerShell):**
+
 ```powershell
 git clone https://github.com/Htoowaithaw/lfcs-exam-lab.git
 cd lfcs-exam-lab
@@ -38,7 +39,8 @@ cd lfcs-exam-lab
 .\lfcs.ps1              # start practicing
 ```
 
-**Linux / Intel macOS (bash):**
+**Linux / macOS, Intel or Apple Silicon (bash):**
+
 ```bash
 git clone https://github.com/Htoowaithaw/lfcs-exam-lab.git
 cd lfcs-exam-lab
@@ -47,6 +49,7 @@ cd lfcs-exam-lab
 ```
 
 **Just check if your machine is ready (changes nothing):**
+
 ```bash
 ./install.sh --check-only      # or:  .\install.ps1 -CheckOnly
 ```
@@ -59,11 +62,11 @@ good — you don't have to take our word for it.
 ## Platform support
 
 | Platform | Status | Notes |
-|---|---|---|
+| --- | --- | --- |
 | **Windows x86-64** | ✅ Supported — installer + lab self-verified on a Win11 dev machine | VirtualBox 7+ coexists with Hyper-V (slower); installer offers to disable it |
 | **Linux x86-64** | 🟢 Installer verified on Ubuntu 24.04 (repos + current Vagrant 2.4.9 + VirtualBox install cleanly); full VM build still needs a VT-capable host. Fedora/`dnf` path not yet run. | needs VT-x/AMD-V and no active KVM guest |
 | **Intel Mac x86-64** | 🧪 Built; not yet verified on a clean machine — feedback/PRs welcome | `brew` install path |
-| **Apple Silicon Mac (M1/M2/M3/M4)** | ❌ Not supported | VirtualBox cannot run the x86 Ubuntu/Rocky VMs this lab uses; no workaround on ARM |
+| **Apple Silicon Mac (M1/M2/M3/M4)** | 🟢 Verified end-to-end on a managed, system-extension-restricted machine — real two-node (`q225`) and libvirt (`q094`) question gates both `PASS/PASS/PASS/PASS` | VirtualBox 7.1+ ships a native Apple Silicon build; this lab's `bento` boxes publish native arm64 images (real arm64 guests, no x86 translation). Inter-node networking uses a VirtualBox NAT Network rather than host-only, so **no system-extension approval is needed on any platform** (see Vagrantfile comments). Caveat: VirtualBox's Apple Silicon support is newer than the other platforms' and showed VM-lifecycle instability (hung processes needing a manual `kill`/rebuild) under heavy repeated snapshot-restore cycling with many concurrent VMs — a known class of issue in VirtualBox's own ARM-host changelog, not specific to this lab. |
 
 Every install runs a built-in self-verify (`lab.py --gate q005` / the Windows gate), so even on the
 "not yet verified" platforms you get an immediate pass/fail for your own machine. If something is off on your
@@ -71,7 +74,9 @@ OS, please open an issue with your `--check-only` output.
 
 ## Requirements
 
-- **x86-64** CPU with hardware virtualization (VT-x / AMD-V) enabled in BIOS/UEFI
+- **x86-64** CPU with hardware virtualization (VT-x / AMD-V) enabled in BIOS/UEFI, **or an Apple
+  Silicon Mac** (M1/M2/M3/M4) — VirtualBox runs the lab's VMs as native arm64 guests there, no
+  BIOS-level virtualization toggle needed
 - **RAM:** 8 GB minimum (runs node1+node2), 16 GB+ recommended (comfortable headroom for all three VMs)
 - **Disk:** ~30 GB free minimum, ~50 GB recommended (VM images + node1's scratch disks)
 - **Tools:** Vagrant + VirtualBox (the installer can add them); `python3` on macOS/Linux (preinstalled or
@@ -82,7 +87,7 @@ OS, please open an issue with your `--check-only` output.
 ## Question bank
 
 | Domain | Questions |
-|---|---:|
+| --- | ---: |
 | Essential Commands | 50 |
 | Operations & Deployment | 60 |
 | Networking | 60 |
@@ -90,8 +95,9 @@ OS, please open an issue with your `--check-only` output.
 | Users and Groups | 30 |
 
 **Total: 250** — 215 single-node, 35 two-node. Single-node Ubuntu tasks run on `node1` (`lfcs-node1`),
-Rocky Linux tasks on `lfcs-rocky1`, and two-node tasks use `node1` + `node2` over the host-only network
-`192.168.56.0/24`. See `docs/BANK_COVERAGE.md`.
+Rocky Linux tasks on `lfcs-rocky1`, and two-node tasks use `node1` + `node2` over a VirtualBox NAT
+Network (`192.168.56.0/24`) — a software-defined switch inside VirtualBox, needs no host-level network
+driver or approval on any platform. See `docs/BANK_COVERAGE.md`.
 
 The VMs built by setup:
 
@@ -171,6 +177,7 @@ Run a single question end-to-end (load → unsolved-fails → solve → solved-p
 ```bash
 python3 lab.py --gate q005                 # macOS / Linux (also works on Windows)
 ```
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\run_question_gate.ps1 -QuestionIds q005
 ```
@@ -184,6 +191,23 @@ A pass prints `q005 PASS/PASS/PASS/PASS` and exits 0. This is exactly what the i
   Linux stop any running KVM guest. Confirm VT-x/AMD-V is enabled in BIOS.
 - **Re-check readiness anytime:** `./install.sh --check-only` (or `.\install.ps1 -CheckOnly`).
 - **A VM is stuck:** reload the question (restores its base), or rebuild with `setup.ps1 -Rebuild`.
+- **Apple Silicon: a VM is unresponsive / `VBoxManage` hangs on it:** `labkit/providers/vagrant.py`
+  self-heals this automatically - if a `VBoxManage` call or the post-restore SSH wait doesn't come back
+  in a reasonable time (a known VirtualBox ARM-host issue, usually right after a snapshot restore), it
+  kills the wedged VM process, restarts the VM fresh, and retries once, printing
+  `VirtualBox looks wedged on <machine> - killing and restarting it...` when this happens. You'll see this
+  during `lab.py` practice/exam sessions and the `--gate` self-test without needing to do anything.
+  If the retry also fails (rare - means the wedge is deeper than a process restart fixes), you'll get a
+  clear error naming the machine; at that point fall back to manually: `ps aux | grep VBoxHeadless`,
+  `kill -9 <pid>`, `vagrant destroy -f <name> && vagrant up <name>` to rebuild clean.
+- **Never run `vagrant up` for more than one machine at the same time** (e.g. two terminals, or `&` in the
+  background). Vagrant's SSH port-forward allocation races across concurrent invocations - two machines
+  can land on the same host port, and Vagrant ends up inserting a fresh SSH key into the wrong guest.
+  Symptoms: one VM looks hung/slow to boot, another rejects its own SSH key with "too many authentication
+  failures". Fix: `vagrant halt -f` the affected machines, `vagrant destroy -f <name>` the one with the bad
+  key, then `vagrant up <name>` them one at a time. `install.sh` / `setup.ps1` already build machines
+  sequentially and hold a lock (`.vagrant/.lfcs-vm-lock`) so two installer runs can't race each other -
+  just don't bypass them with manual parallel `vagrant up` calls.
 - **SSH key permission complaints (Windows):** keep the repo in your user profile; don't copy `.vagrant/`
   or `.ssh-cache.json` between machines.
 
@@ -203,8 +227,9 @@ python3 lab.py --gate q234
 ```
 
 **Platform testing help wanted:** the full Linux end-to-end (on a VT-capable host) and the Intel-macOS
-install path are not yet verified on clean machines. If you run `install.sh` on a fresh Linux or Intel Mac,
-please open an issue with your `./install.sh --check-only` output and whether the self-verify passed.
+and Apple Silicon-macOS install paths are not yet verified on clean machines. If you run `install.sh` on
+a fresh Linux, Intel Mac, or Apple Silicon Mac, please open an issue with your `./install.sh --check-only`
+output and whether the self-verify passed.
 
 ## License
 

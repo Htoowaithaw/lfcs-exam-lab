@@ -105,6 +105,43 @@ function Invoke-Vagrant([string[]]$Arguments) {
   }
 }
 
+# ---- VM lock (avoid concurrent `vagrant up`) --------------------------------
+# Running `vagrant up` for more than one machine at the same time races on
+# Vagrant's SSH port-forward allocation: two machines can both land on the
+# same host port, so Vagrant inserts a fresh SSH key into the wrong guest and
+# the other machine is left permanently unreachable. The loop below already
+# runs machines one at a time, but this lock also stops a second setup.ps1 (or
+# a manual `vagrant up`) from racing this one.
+$VmLockDir = Join-Path $LabRoot ".vagrant\.lfcs-vm-lock"
+$VmLockHeld = $false
+
+function Acquire-VmLock {
+  $tries = 0
+  while ($true) {
+    try {
+      New-Item -ItemType Directory -Path $VmLockDir -ErrorAction Stop | Out-Null
+      $script:VmLockHeld = $true
+      return
+    } catch {
+      if ($tries -eq 0) {
+        Write-Step "Another build/boot is already using the VMs (lock: $VmLockDir). Waiting..."
+      }
+      $tries++
+      if ($tries -gt 150) {
+        throw "Timed out waiting for the VM lock after 5 min. If nothing is actually running, remove it manually: Remove-Item '$VmLockDir'"
+      }
+      Start-Sleep -Seconds 2
+    }
+  }
+}
+
+function Release-VmLock {
+  if ($script:VmLockHeld) {
+    Remove-Item -LiteralPath $VmLockDir -Recurse -Force -ErrorAction SilentlyContinue
+    $script:VmLockHeld = $false
+  }
+}
+
 if (!(Test-Command "vagrant")) { throw "Vagrant was not found in PATH." }
 if (!(Test-Path $VBoxManage)) { throw "VBoxManage was not found at $VBoxManage." }
 
@@ -113,24 +150,29 @@ Write-Host "Lab root: $LabRoot"
 Write-Host "Mode: $(if ($DryRun) { 'dry-run' } elseif ($Rebuild) { 'rebuild' } else { 'normal' })"
 Write-Host ""
 
-foreach ($machine in $Machines) {
-  $hasBase = Test-BaseSnapshot $machine.VBoxName
-  if ($hasBase -and !$Rebuild) {
-    Write-Step "$($machine.Name): base snapshot already exists; skipping rebuild"
-    continue
-  }
+if (!$DryRun) { Acquire-VmLock }
+try {
+  foreach ($machine in $Machines) {
+    $hasBase = Test-BaseSnapshot $machine.VBoxName
+    if ($hasBase -and !$Rebuild) {
+      Write-Step "$($machine.Name): base snapshot already exists; skipping rebuild"
+      continue
+    }
 
-  if ($Rebuild -and $hasBase) {
-    Invoke-Step "$($machine.Name): delete existing base snapshot" { Remove-BaseSnapshot $machine.VBoxName }
-  }
+    if ($Rebuild -and $hasBase) {
+      Invoke-Step "$($machine.Name): delete existing base snapshot" { Remove-BaseSnapshot $machine.VBoxName }
+    }
 
-  Invoke-Step "$($machine.Name): vagrant up with provisioning" { Invoke-Vagrant -Arguments @("up", $machine.Name, "--provision") }
+    Invoke-Step "$($machine.Name): vagrant up with provisioning" { Invoke-Vagrant -Arguments @("up", $machine.Name, "--provision") }
 
-  if (!(Test-BaseSnapshot $machine.VBoxName)) {
-    Invoke-Step "$($machine.Name): save base snapshot" { Save-BaseSnapshot $machine.Name $machine.VBoxName }
-  } else {
-    Write-Step "$($machine.Name): base snapshot exists after provisioning"
+    if (!(Test-BaseSnapshot $machine.VBoxName)) {
+      Invoke-Step "$($machine.Name): save base snapshot" { Save-BaseSnapshot $machine.Name $machine.VBoxName }
+    } else {
+      Write-Step "$($machine.Name): base snapshot exists after provisioning"
+    }
   }
+} finally {
+  Release-VmLock
 }
 
 Invoke-Step "build .ssh-cache.json for node1, node2, and lfcs-rocky1" { Build-SshCache }
